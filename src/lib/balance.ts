@@ -93,9 +93,10 @@ export function balanceTeams(
   )
   placeOverflow(stillLeft, teams, assigned)
 
-  // 정원 먼저 맞춘 뒤 MMR 미세 조정 → 다시 한 번 탱 캡 확인
+  // 정원 → 역할 균형 → 팀 총점/평균 균등화 → 탱 캡 재확인
   enforceTankCap(teams)
   refineSlottedBalance(teams)
+  refineTeamScoreBalance(teams)
   enforceTankCap(teams)
   recalculateTotals(teams)
 
@@ -200,10 +201,12 @@ function fillRoleSlots(
     if (candidates.length === 0) break
 
     candidates.sort((a, b) => {
+      // 총점이 낮은 팀에 고티어를 우선 배분해 팀 점수 균등화
+      if (a.totalMmr !== b.totalMmr) return a.totalMmr - b.totalMmr
       const aRole = roleMmr(a, role)
       const bRole = roleMmr(b, role)
       if (aRole !== bRole) return aRole - bRole
-      return a.totalMmr - b.totalMmr
+      return a.members.length - b.members.length
     })
 
     addMember(candidates[0], player, role)
@@ -243,7 +246,11 @@ function fillEmptySlotsWithFlex(
   assigned: Set<string>,
 ): void {
   const empties = listEmptySlots(teams)
+  // 총점 낮은 팀의 빈 슬롯부터, 고티어 플렉스 투입
   const sortedEmpties = [...empties].sort((a, b) => {
+    if (a.team.totalMmr !== b.team.totalMmr) {
+      return a.team.totalMmr - b.team.totalMmr
+    }
     const roleCmp = SLOT_ORDER.indexOf(a.role) - SLOT_ORDER.indexOf(b.role)
     if (roleCmp !== 0) return roleCmp
     return roleMmr(a.team, a.role) - roleMmr(b.team, b.role)
@@ -334,10 +341,12 @@ function placeOverflow(
 function refineSlottedBalance(teams: Team[]): void {
   if (teams.length < 2) return
 
-  const maxPasses = Math.min(80, Math.max(20, teams.length * 2))
+  const maxPasses = Math.min(120, Math.max(40, teams.length * 4))
 
   for (const role of SLOT_ORDER) {
     for (let pass = 0; pass < maxPasses; pass++) {
+      recalculateTotals(teams)
+
       const stats = teams.map((team) => ({
         team,
         mmr: roleMmr(team, role),
@@ -352,10 +361,15 @@ function refineSlottedBalance(teams: Team[]): void {
       withMembers.sort((a, b) => a.mmr - b.mmr)
       const weakest = withMembers[0]
       const strongest = withMembers[withMembers.length - 1]
-      const gap = strongest.mmr - weakest.mmr
-      if (gap <= 1) break
+      const roleGap = strongest.mmr - weakest.mmr
+      const totalGap = Math.abs(strongest.team.totalMmr - weakest.team.totalMmr)
+      if (roleGap <= 0.5 && totalGap <= 1) break
 
-      let best: { si: number; wi: number; score: number } | null = null
+      let best: {
+        si: number
+        wi: number
+        score: number
+      } | null = null
 
       for (const si of strongest.indices) {
         for (const wi of weakest.indices) {
@@ -363,13 +377,23 @@ function refineSlottedBalance(teams: Team[]): void {
           const wMem = weakest.team.members[wi]
           const sM = playerRoleMmr(sMem.player, role)
           const wM = playerRoleMmr(wMem.player, role)
-          if (sM <= wM) continue
+          if (sM === wM) continue
 
-          const newStrong = strongest.mmr - sM + wM
-          const newWeak = weakest.mmr - wM + sM
-          const improvement = gap - Math.abs(newStrong - newWeak)
-          if (improvement > 0 && (!best || improvement > best.score)) {
-            best = { si, wi, score: improvement }
+          const newStrongRole = strongest.mmr - sM + wM
+          const newWeakRole = weakest.mmr - wM + sM
+          const newStrongTotal = strongest.team.totalMmr - sM + wM
+          const newWeakTotal = weakest.team.totalMmr - wM + sM
+
+          const roleImprove =
+            roleGap - Math.abs(newStrongRole - newWeakRole)
+          const totalImprove =
+            Math.abs(strongest.team.totalMmr - weakest.team.totalMmr) -
+            Math.abs(newStrongTotal - newWeakTotal)
+
+          // 역할 균형 + 팀 총점 균형을 함께 점수화
+          const score = roleImprove * 1.2 + totalImprove * 1.8
+          if (score > 0.05 && (!best || score > best.score)) {
+            best = { si, wi, score }
           }
         }
       }
@@ -382,6 +406,183 @@ function refineSlottedBalance(teams: Team[]): void {
       weakest.team.members[best.wi] = { ...sMem, slottedRole: role }
     }
   }
+}
+
+/**
+ * 같은 배정 역할끼리(가능하면 교차 역할도) 팀 간 스왑해
+ * 평균 MMR 편차를 최소화. (역할 정원·탱 캡 유지)
+ */
+function refineTeamScoreBalance(teams: Team[]): void {
+  if (teams.length < 2) return
+
+  recalculateTotals(teams)
+  const maxPasses = Math.min(180, Math.max(50, teams.length * 6))
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    recalculateTotals(teams)
+    const before = teamBalanceCost(teams)
+
+    // 편차가 큰 팀 쌍을 우선 검사 (전수 + 강 vs 약)
+    const ranked = [...teams]
+      .map((team, index) => ({
+        index,
+        team,
+        avg: team.members.length > 0 ? team.totalMmr / team.members.length : 0,
+      }))
+      .sort((a, b) => a.avg - b.avg)
+
+    const pairKeys = new Set<string>()
+    const pairs: [number, number][] = []
+
+    function addPair(i: number, j: number) {
+      if (i === j) return
+      const a = Math.min(i, j)
+      const b = Math.max(i, j)
+      const key = `${a}:${b}`
+      if (pairKeys.has(key)) return
+      pairKeys.add(key)
+      pairs.push([a, b])
+    }
+
+    // 최약 vs 최강, 차악 vs 차강 …
+    for (let k = 0; k < Math.min(4, Math.floor(ranked.length / 2)); k++) {
+      addPair(ranked[k].index, ranked[ranked.length - 1 - k].index)
+    }
+    // 팀 수가 적으면 전수 쌍
+    if (teams.length <= 6) {
+      for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) addPair(i, j)
+      }
+    } else {
+      // 이웃 순위끼리도 약간
+      for (let i = 0; i < ranked.length - 1; i++) {
+        addPair(ranked[i].index, ranked[i + 1].index)
+      }
+    }
+
+    let best: {
+      ta: number
+      tb: number
+      ia: number
+      ib: number
+      cost: number
+    } | null = null
+
+    for (const [ta, tb] of pairs) {
+      const teamA = teams[ta]
+      const teamB = teams[tb]
+
+      for (let ia = 0; ia < teamA.members.length; ia++) {
+        for (let ib = 0; ib < teamB.members.length; ib++) {
+          const a = teamA.members[ia]
+          const b = teamB.members[ib]
+          const sameRole = a.slottedRole === b.slottedRole
+
+          if (!sameRole) {
+            if (!canAssignRole(a.player, b.slottedRole)) continue
+            if (!canAssignRole(b.player, a.slottedRole)) continue
+            if (!crossSwapKeepsTankCap(teamA, teamB, ia, ib)) continue
+          }
+
+          const aRole = a.slottedRole
+          const bRole = b.slottedRole
+          const aM = playerRoleMmr(a.player, aRole)
+          const bM = playerRoleMmr(b.player, bRole)
+          // 같은 역할이면 MMR 같을 때 스킵, 교차면 슬롯 유지 시 기여도 차이 확인
+          if (sameRole && aM === bM) continue
+
+          const playerA = a.player
+          const playerB = b.player
+
+          teamA.members[ia] = { player: playerB, slottedRole: aRole }
+          teamB.members[ib] = { player: playerA, slottedRole: bRole }
+          recalculateTotals(teams)
+          const cost = teamBalanceCost(teams)
+          teamA.members[ia] = { player: playerA, slottedRole: aRole }
+          teamB.members[ib] = { player: playerB, slottedRole: bRole }
+
+          if (cost + 0.01 < before && (!best || cost < best.cost)) {
+            best = { ta, tb, ia, ib, cost }
+          }
+        }
+      }
+    }
+
+    recalculateTotals(teams)
+    if (!best) break
+
+    const teamA = teams[best.ta]
+    const teamB = teams[best.tb]
+    const a = teamA.members[best.ia]
+    const b = teamB.members[best.ib]
+    const aRole = a.slottedRole
+    const bRole = b.slottedRole
+    const playerA = a.player
+    const playerB = b.player
+    teamA.members[best.ia] = { player: playerB, slottedRole: aRole }
+    teamB.members[best.ib] = { player: playerA, slottedRole: bRole }
+  }
+
+  recalculateTotals(teams)
+}
+
+function crossSwapKeepsTankCap(
+  teamA: Team,
+  teamB: Team,
+  ia: number,
+  ib: number,
+): boolean {
+  const a = teamA.members[ia]
+  const b = teamB.members[ib]
+
+  const simA = teamA.members.map((m, i) =>
+    i === ia ? { ...m, player: b.player, slottedRole: a.slottedRole } : m,
+  )
+  const simB = teamB.members.map((m, i) =>
+    i === ib ? { ...m, player: a.player, slottedRole: b.slottedRole } : m,
+  )
+
+  const tanksA = simA.filter((m) => m.slottedRole === 'tank').length
+  const tanksB = simB.filter((m) => m.slottedRole === 'tank').length
+  return tanksA <= activeComp.tank && tanksB <= activeComp.tank
+}
+
+/** 낮을수록 균형. 평균 MMR 편차 + 역할별 편차 */
+function teamBalanceCost(teams: Team[]): number {
+  const avgs = teams
+    .filter((t) => t.members.length > 0)
+    .map((t) => t.totalMmr / t.members.length)
+  if (avgs.length < 2) return 0
+
+  const mean = avgs.reduce((s, v) => s + v, 0) / avgs.length
+  let avgVar = 0
+  for (const v of avgs) avgVar += (v - mean) ** 2
+
+  const maxAvg = Math.max(...avgs)
+  const minAvg = Math.min(...avgs)
+  const avgRange = maxAvg - minAvg
+
+  let roleCost = 0
+  for (const role of SLOT_ORDER) {
+    const roleAvgs = teams
+      .map((t) => {
+        const n = rolePlayerCount(t, role)
+        return n > 0 ? roleMmr(t, role) / n : null
+      })
+      .filter((v): v is number => v !== null)
+    if (roleAvgs.length < 2) continue
+    const rMean = roleAvgs.reduce((s, v) => s + v, 0) / roleAvgs.length
+    for (const v of roleAvgs) roleCost += (v - rMean) ** 2
+    roleCost += (Math.max(...roleAvgs) - Math.min(...roleAvgs)) * 0.5
+  }
+
+  // 인원 수 편차도 약간 패널티
+  const sizes = teams.map((t) => t.members.length)
+  const sizeMean = sizes.reduce((s, v) => s + v, 0) / sizes.length
+  let sizeCost = 0
+  for (const s of sizes) sizeCost += (s - sizeMean) ** 2
+
+  return avgVar * 4 + avgRange * 6 + roleCost * 1.2 + sizeCost * 0.4
 }
 
 /**
