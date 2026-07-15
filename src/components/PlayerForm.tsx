@@ -36,9 +36,9 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="block space-y-1.5">
-          <span className="font-display text-xs uppercase tracking-widest text-ow-mist/70">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="block space-y-1.5 sm:col-span-2 lg:col-span-1">
+          <span className="text-xs font-medium tracking-wide text-ow-mist/70">
             닉네임
           </span>
           <input
@@ -47,12 +47,13 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
             onChange={(e) => setNickname(e.target.value)}
             placeholder="배틀태그 / 닉네임"
             maxLength={24}
+            autoComplete="off"
             required
           />
         </label>
 
         <label className="block space-y-1.5">
-          <span className="font-display text-xs uppercase tracking-widest text-ow-mist/70">
+          <span className="text-xs font-medium tracking-wide text-ow-mist/70">
             포지션
           </span>
           <select
@@ -69,7 +70,7 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
         </label>
 
         <label className="block space-y-1.5">
-          <span className="font-display text-xs uppercase tracking-widest text-ow-mist/70">
+          <span className="text-xs font-medium tracking-wide text-ow-mist/70">
             티어
           </span>
           <select
@@ -86,7 +87,7 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
         </label>
 
         <label className="block space-y-1.5">
-          <span className="font-display text-xs uppercase tracking-widest text-ow-mist/70">
+          <span className="text-xs font-medium tracking-wide text-ow-mist/70">
             디비전
           </span>
           <select
@@ -96,14 +97,14 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
           >
             {DIVISIONS.map((d) => (
               <option key={d} value={d}>
-                {d} (디비전 {d})
+                디비전 {d}
               </option>
             ))}
           </select>
         </label>
       </div>
 
-      <button type="submit" className="btn-primary animate-pulse-glow">
+      <button type="submit" className="btn-primary animate-pulse-glow w-full sm:w-auto">
         <Plus size={18} strokeWidth={2.5} />
         팀원 추가
       </button>

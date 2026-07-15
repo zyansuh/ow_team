@@ -20,11 +20,12 @@ export function TeamSetup({
   }
 
   return (
-    <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-      <div className="space-y-2">
-        <p className="font-display text-xs uppercase tracking-widest text-ow-mist/70">
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0 flex-1 space-y-2">
+        <p className="text-xs font-medium tracking-wide text-ow-mist/70">
           팀 수 (무제한)
         </p>
+
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -39,7 +40,8 @@ export function TeamSetup({
           <input
             type="number"
             min={1}
-            className="input-field clip-angle font-display w-24 text-center text-xl font-bold"
+            inputMode="numeric"
+            className="input-field clip-angle w-20 text-center text-xl font-bold sm:w-24"
             value={teamCount}
             onChange={(e) => setCount(Number(e.target.value))}
           />
@@ -52,35 +54,36 @@ export function TeamSetup({
           >
             <Plus size={16} />
           </button>
-
-          <div className="ml-1 flex flex-wrap gap-1.5">
-            {[+5, +10, +20].map((step) => (
-              <button
-                key={step}
-                type="button"
-                className="btn-ghost !px-2.5 !py-1.5 !text-xs"
-                onClick={() => setCount(teamCount + step)}
-              >
-                {step > 0 ? `+${step}` : step}
-              </button>
-            ))}
-            {teamCount > 2 && (
-              <button
-                type="button"
-                className="btn-ghost !px-2.5 !py-1.5 !text-xs"
-                onClick={() => setCount(2)}
-              >
-                2로
-              </button>
-            )}
-          </div>
         </div>
-        <p className="text-xs text-ow-mist/50">
+
+        <div className="flex flex-wrap gap-1.5">
+          {[+5, +10, +20].map((step) => (
+            <button
+              key={step}
+              type="button"
+              className="btn-ghost !min-h-9 !px-2.5 !py-1.5 !text-xs"
+              onClick={() => setCount(teamCount + step)}
+            >
+              +{step}
+            </button>
+          ))}
+          {teamCount > 2 && (
+            <button
+              type="button"
+              className="btn-ghost !min-h-9 !px-2.5 !py-1.5 !text-xs"
+              onClick={() => setCount(2)}
+            >
+              2로
+            </button>
+          )}
+        </div>
+
+        <p className="text-xs leading-relaxed text-ow-mist/50">
           {teamCount >= 2
             ? `${teamCount}팀 토너먼트 브래킷이 함께 생성됩니다. 대규모 내전도 OK.`
             : '1팀은 연습/내부 분배용입니다.'}
           {playerCount > 0 && teamCount > 0 && (
-            <span className="ml-1 text-ow-mist/40">
+            <span className="mt-0.5 block text-ow-mist/40 sm:mt-0 sm:ml-1 sm:inline">
               · 팀당 약 {(playerCount / teamCount).toFixed(1)}명
             </span>
           )}
@@ -89,15 +92,13 @@ export function TeamSetup({
 
       <button
         type="button"
-        className="btn-primary"
+        className="btn-primary w-full shrink-0 lg:w-auto"
         disabled={!canBalance}
         onClick={onBalance}
       >
         {teamCount >= 2 ? <Trophy size={18} /> : <Shuffle size={18} />}
-        티어 맞춰 팀짜기
-        {playerCount > 0 && (
-          <span className="opacity-70">({playerCount}명)</span>
-        )}
+        <span className="truncate">티어 맞춰 팀짜기</span>
+        {playerCount > 0 && <span className="opacity-70">({playerCount}명)</span>}
       </button>
     </div>
   )
