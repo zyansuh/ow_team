@@ -5,24 +5,63 @@ import {
   playerOverallMmr,
   playerRoleMmr,
 } from '../constants'
-import type { Player, Position, SlottedRole, Team, TeamMember } from '../types'
+import type {
+  GameMode,
+  Player,
+  Position,
+  SlottedRole,
+  Team,
+  TeamMember,
+} from '../types'
 
-/** 오버워치 한 팀 구성: 탱커 1 · 딜러 2 · 힐러 2 */
-export const TEAM_COMPOSITION: Record<SlottedRole, number> = {
-  tank: 1,
-  dealer: 2,
-  healer: 2,
+export type { GameMode }
+
+export const MODE_COMPOSITION: Record<
+  GameMode,
+  Record<SlottedRole, number>
+> = {
+  '5v5': { tank: 1, dealer: 2, healer: 2 },
+  '6v6': { tank: 2, dealer: 2, healer: 2 },
 }
 
 export const SLOT_ORDER: SlottedRole[] = ['tank', 'healer', 'dealer']
 
+const NON_TANK_ROLES: SlottedRole[] = ['dealer', 'healer']
+
+/** balanceTeams 실행 중 현재 모드 구성 */
+let activeComp = MODE_COMPOSITION['5v5']
+
+export function getComposition(mode: GameMode) {
+  return MODE_COMPOSITION[mode]
+}
+
+export function rosterSize(mode: GameMode): number {
+  const c = MODE_COMPOSITION[mode]
+  return c.tank + c.dealer + c.healer
+}
+
+export function modeDisplayName(mode: GameMode): string {
+  return mode === '5v5' ? '5:5' : '6:6'
+}
+
+export function compositionSummary(mode: GameMode): string {
+  const c = MODE_COMPOSITION[mode]
+  return `탱커 ${c.tank} · 딜러 ${c.dealer} · 힐러 ${c.healer}`
+}
+
+/** 하위 호환: 기본 5:5 구성 */
+export const TEAM_COMPOSITION = MODE_COMPOSITION['5v5']
+
 /**
- * OW 5인 구성(탱1·딜2·힐2)으로 팀을 나눕니다.
- * 1) 전담(무작위 아님) 인원을 역할 슬롯에 티어 맞춰 배치
- * 2) 무작위(플렉스) 인원을 빈 슬롯에 해당 포지션 티어로 채움
- * 3) 남는 인원은 인원·MMR이 적은 팀에 최적 역할로 추가
+ * OW 구성으로 팀을 나눕니다.
+ * 5:5 → 탱1·딜2·힐2 / 6:6 → 탱2·딜2·힐2
  */
-export function balanceTeams(players: Player[], teamCount: number): Team[] {
+export function balanceTeams(
+  players: Player[],
+  teamCount: number,
+  mode: GameMode = '5v5',
+): Team[] {
+  activeComp = MODE_COMPOSITION[mode]
   const count = Math.max(1, Math.floor(teamCount))
   const teams: Team[] = Array.from({ length: count }, (_, i) => ({
     id: i,
@@ -37,7 +76,6 @@ export function balanceTeams(players: Player[], teamCount: number): Team[] {
   const specialists = players.filter((p) => !isFlex(p))
   const flexPool = players.filter((p) => isFlex(p))
 
-  // 1) 전담 역할 배치 (슬롯 정원 내에서)
   for (const role of SLOT_ORDER) {
     const pool = specialists.filter(
       (p) => !assigned.has(p.id) && hasExplicitRole(p, role),
@@ -45,13 +83,10 @@ export function balanceTeams(players: Player[], teamCount: number): Team[] {
     fillRoleSlots(role, pool, teams, assigned)
   }
 
-  // 전담인데 아직 못 들어간 사람 (슬롯이 다 찬 경우 등) → 빈 슬롯/오버플로로
   const leftoverSpecialists = specialists.filter((p) => !assigned.has(p.id))
 
-  // 2) 빈 슬롯을 무작위(플렉스)로 채움
   fillEmptySlotsWithFlex(flexPool, teams, assigned)
 
-  // 3) 남은 전담 + 남은 플렉스 → 빈 슬롯 우선, 없으면 오버플로
   const stillLeft = [...leftoverSpecialists, ...flexPool].filter(
     (p) => !assigned.has(p.id),
   )
@@ -59,6 +94,7 @@ export function balanceTeams(players: Player[], teamCount: number): Team[] {
 
   refineSlottedBalance(teams)
   recalculateTotals(teams)
+  enforceTankCap(teams)
 
   return teams
 }
@@ -68,12 +104,45 @@ function slotCount(team: Team, role: SlottedRole): number {
 }
 
 function needsSlot(team: Team, role: SlottedRole): boolean {
-  return slotCount(team, role) < TEAM_COMPOSITION[role]
+  return slotCount(team, role) < activeComp[role]
+}
+
+/** 탱커 자리 없거나 이미 1명이면 딜/힐만 선택 */
+function pickNonTankRole(player: Player, team: Team): SlottedRole {
+  const prefer = NON_TANK_ROLES.filter(
+    (role) =>
+      needsSlot(team, role) &&
+      (hasExplicitRole(player, role) || canFlexInto(player, role)),
+  )
+  if (prefer.length > 0) {
+    return [...prefer].sort(
+      (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
+    )[0]
+  }
+
+  const open = NON_TANK_ROLES.filter((role) => needsSlot(team, role))
+  if (open.length > 0) {
+    return [...open].sort(
+      (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
+    )[0]
+  }
+
+  return [...NON_TANK_ROLES].sort(
+    (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
+  )[0]
+}
+
+function clampRole(team: Team, player: Player, role: SlottedRole): SlottedRole {
+  if (role === 'tank' && slotCount(team, 'tank') >= activeComp.tank) {
+    return pickNonTankRole(player, team)
+  }
+  return role
 }
 
 function addMember(team: Team, player: Player, slottedRole: SlottedRole): void {
-  team.members.push({ player, slottedRole })
-  team.totalMmr += playerRoleMmr(player, slottedRole)
+  const role = clampRole(team, player, slottedRole)
+  team.members.push({ player, slottedRole: role })
+  team.totalMmr += playerRoleMmr(player, role)
 }
 
 function fillRoleSlots(
@@ -105,9 +174,7 @@ function fillRoleSlots(
 }
 
 function canFlexInto(player: Player, role: SlottedRole): boolean {
-  // 플렉스 + 해당 역할 티어가 있으면 빈 슬롯 투입 가능
   if (isFlex(player) && hasExplicitRole(player, role)) return true
-  // 구형: 무작위만(대표 티어)
   if (
     isFlex(player) &&
     !hasExplicitRole(player, 'tank') &&
@@ -123,7 +190,7 @@ function listEmptySlots(teams: Team[]): { team: Team; role: SlottedRole }[] {
   const empties: { team: Team; role: SlottedRole }[] = []
   for (const role of SLOT_ORDER) {
     for (const team of teams) {
-      const missing = TEAM_COMPOSITION[role] - slotCount(team, role)
+      const missing = activeComp[role] - slotCount(team, role)
       for (let i = 0; i < missing; i++) {
         empties.push({ team, role })
       }
@@ -138,7 +205,6 @@ function fillEmptySlotsWithFlex(
   assigned: Set<string>,
 ): void {
   const empties = listEmptySlots(teams)
-  // 슬롯별로 「그 역할 MMR이 낮은 팀」 빈자리부터 강한 플렉스로 채움
   const sortedEmpties = [...empties].sort((a, b) => {
     const roleCmp = SLOT_ORDER.indexOf(a.role) - SLOT_ORDER.indexOf(b.role)
     if (roleCmp !== 0) return roleCmp
@@ -154,11 +220,8 @@ function fillEmptySlotsWithFlex(
 
     if (candidates.length === 0) continue
 
-    // 팀에 넣었을 때 역할 균형이 좋아지는 쪽 우선: 일단 가장 강한 후보
-    // (약한 팀에 강한 플렉스를 넣어 맞춤)
-    const pick = candidates[0]
-    addMember(team, pick, role)
-    assigned.add(pick.id)
+    addMember(team, candidates[0], role)
+    assigned.add(candidates[0].id)
   }
 }
 
@@ -168,13 +231,14 @@ function bestRoleForPlayer(player: Player, team: Team): SlottedRole {
       needsSlot(team, role) &&
       (hasExplicitRole(player, role) || canFlexInto(player, role)),
   )
-  const anyRoles = SLOT_ORDER.filter(
-    (role) => hasExplicitRole(player, role) || canFlexInto(player, role),
-  )
-  const pool = deficitRoles.length > 0 ? deficitRoles : anyRoles.length > 0 ? anyRoles : SLOT_ORDER
-  return [...pool].sort(
-    (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
-  )[0]
+  if (deficitRoles.length > 0) {
+    return [...deficitRoles].sort(
+      (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
+    )[0]
+  }
+
+  // 빈 슬롯 없음 → 탱커 추가 금지, 딜/힐만
+  return pickNonTankRole(player, team)
 }
 
 function placeOverflow(
@@ -189,7 +253,6 @@ function placeOverflow(
   for (const player of sorted) {
     if (assigned.has(player.id)) continue
 
-    // 빈 슬롯 있는 팀 우선
     const withEmpty = teams
       .map((team) => ({
         team,
@@ -212,7 +275,6 @@ function placeOverflow(
       continue
     }
 
-    // 슬롯이 다 찬 경우: 인원 적은 팀에 오버플로
     const target = [...teams].sort((a, b) => {
       if (a.members.length !== b.members.length) {
         return a.members.length - b.members.length
@@ -279,6 +341,27 @@ function refineSlottedBalance(teams: Team[]): void {
   }
 }
 
+/** 혹시라도 탱커가 2명 이상이면 초과분을 딜/힐로 강제 변경 */
+function enforceTankCap(teams: Team[]): void {
+  for (const team of teams) {
+    const tanks = team.members.filter((m) => m.slottedRole === 'tank')
+    if (tanks.length <= activeComp.tank) continue
+
+    // MMR 높은 1명만 탱커 유지, 나머지 재배정
+    const ranked = [...tanks].sort(
+      (a, b) =>
+        playerRoleMmr(b.player, 'tank') - playerRoleMmr(a.player, 'tank'),
+    )
+    for (const extra of ranked.slice(activeComp.tank)) {
+      extra.slottedRole = pickNonTankRole(extra.player, {
+        ...team,
+        // 임시로 이 멤버를 탱이 아닌 것처럼 보고 빈 딜/힐 우선
+        members: team.members.filter((m) => m !== extra),
+      })
+    }
+  }
+}
+
 function recalculateTotals(teams: Team[]): void {
   for (const team of teams) {
     team.totalMmr = team.members.reduce(
@@ -319,13 +402,13 @@ export function compositionLabel(team: Team): string {
   return `탱 ${t} · 딜 ${d} · 힐 ${h}`
 }
 
-export function isFullRoster(team: Team): boolean {
+export function isFullRoster(team: Team, mode: GameMode = '5v5'): boolean {
+  const comp = MODE_COMPOSITION[mode]
   return SLOT_ORDER.every(
-    (role) => rolePlayerCount(team, role) >= TEAM_COMPOSITION[role],
+    (role) => rolePlayerCount(team, role) >= comp[role],
   )
 }
 
-/** UI/레거시 호환: members의 player 목록 */
 export function teamPlayers(team: Team): Player[] {
   return team.members.map((m) => m.player)
 }

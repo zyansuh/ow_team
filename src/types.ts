@@ -2,6 +2,9 @@ export type Position = 'tank' | 'healer' | 'dealer' | 'random'
 
 export type SlottedRole = 'tank' | 'healer' | 'dealer'
 
+/** 5:5 = 탱1·딜2·힐2 / 6:6 = 탱2·딜2·힐2 */
+export type GameMode = '5v5' | '6v6'
+
 export type RankName =
   | 'unranked'
   | 'bronze'
