@@ -46,7 +46,11 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
       ...prev,
       [position]: {
         ...prev[position],
-        tier: { ...prev[position].tier, rank },
+        tier: {
+          rank,
+          // 미배치/언랭은 디비전 개념 없음 → 고정
+          division: rank === 'unranked' ? 5 : prev[position].tier.division,
+        },
       },
     }))
   }
@@ -160,19 +164,25 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
               </label>
               <label className="block space-y-1.5">
                 <span className="text-xs text-ow-mist/60">디비전</span>
-                <select
-                  className="input-field clip-angle"
-                  value={draft[position].tier.division}
-                  onChange={(e) =>
-                    setRoleDivision(position, Number(e.target.value) as Division)
-                  }
-                >
-                  {DIVISIONS.map((d) => (
-                    <option key={d} value={d}>
-                      디비전 {d}
-                    </option>
-                  ))}
-                </select>
+                {draft[position].tier.rank === 'unranked' ? (
+                  <div className="input-field clip-angle flex items-center text-ow-mist/45">
+                    해당 없음
+                  </div>
+                ) : (
+                  <select
+                    className="input-field clip-angle"
+                    value={draft[position].tier.division}
+                    onChange={(e) =>
+                      setRoleDivision(position, Number(e.target.value) as Division)
+                    }
+                  >
+                    {DIVISIONS.map((d) => (
+                      <option key={d} value={d}>
+                        디비전 {d}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </label>
             </div>
           </div>

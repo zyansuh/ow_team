@@ -123,7 +123,7 @@ export default function App() {
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
                 팀원·팀 수 제한 없음. 한 명에 포지션을 여러 개 넣고 포지션마다 티어를 적을 수
-                있습니다. 디비전은 5가 낮고 1이 높습니다.
+                있습니다. 배치 전(미배치/언랭)도 선택할 수 있고, 디비전은 5가 낮고 1이 높습니다.
               </p>
             </div>
 

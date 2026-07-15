@@ -1,6 +1,7 @@
 import type { Division, Player, Position, RankName, RoleEntry, Tier } from './types'
 
 export const RANK_ORDER: RankName[] = [
+  'unranked',
   'bronze',
   'silver',
   'gold',
@@ -12,6 +13,7 @@ export const RANK_ORDER: RankName[] = [
 ]
 
 export const RANK_LABELS: Record<RankName, string> = {
+  unranked: '미배치/언랭',
   bronze: '브론즈',
   silver: '실버',
   gold: '골드',
@@ -23,6 +25,7 @@ export const RANK_LABELS: Record<RankName, string> = {
 }
 
 export const RANK_COLORS: Record<RankName, string> = {
+  unranked: '#6b7280',
   bronze: '#b87333',
   silver: '#9ca3af',
   gold: '#eab308',
@@ -57,15 +60,21 @@ export function formatTeamName(index: number): string {
   return `${index + 1}팀`
 }
 
-/** 브론즈5(최저) → 챔피언1(최고). 디비전은 5가 낮고 1이 높음 */
+/** 미배치/언랭(최저) → 브론즈5 → … → 챔피언1(최고). 디비전은 5가 낮고 1이 높음 */
 export function tierToMmr(tier: Tier): number {
-  const rankIndex = RANK_ORDER.indexOf(tier.rank)
+  if (tier.rank === 'unranked') return 0
+  const rankIndex = RANK_ORDER.indexOf(tier.rank) - 1 // bronze = 0
   const divisionScore = 6 - tier.division
   return rankIndex * 5 + divisionScore
 }
 
 export function formatTier(tier: Tier): string {
+  if (tier.rank === 'unranked') return RANK_LABELS.unranked
   return `${RANK_LABELS[tier.rank]} ${tier.division}`
+}
+
+export function isUnranked(rank: RankName): boolean {
+  return rank === 'unranked'
 }
 
 export function createId(): string {

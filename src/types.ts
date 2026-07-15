@@ -1,6 +1,7 @@
 export type Position = 'tank' | 'healer' | 'dealer' | 'random'
 
 export type RankName =
+  | 'unranked'
   | 'bronze'
   | 'silver'
   | 'gold'
