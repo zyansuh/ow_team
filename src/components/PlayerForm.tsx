@@ -197,7 +197,7 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
 
       <div className="space-y-2">
         <p className="text-xs font-medium tracking-wide text-ow-mist/70">
-          포지션 · 티어 (OW 구성: 탱1 · 딜2 · 힐2)
+          포지션 · 티어 (5:5 / 6:6 모두 탱·힐·딜 구성)
         </p>
         <div className="flex flex-wrap gap-2">
           {POSITION_ORDER.map((position) => {

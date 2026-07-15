@@ -1,6 +1,13 @@
 import { Minus, Plus, Shuffle, Trophy } from 'lucide-react'
+import {
+  compositionSummary,
+  modeDisplayName,
+  rosterSize,
+} from '../lib/balance'
+import type { GameMode } from '../types'
 
 interface TeamSetupProps {
+  gameMode: GameMode
   teamCount: number
   onTeamCountChange: (n: number) => void
   playerCount: number
@@ -9,6 +16,7 @@ interface TeamSetupProps {
 }
 
 export function TeamSetup({
+  gameMode,
   teamCount,
   onTeamCountChange,
   playerCount,
@@ -18,6 +26,9 @@ export function TeamSetup({
   function setCount(n: number) {
     onTeamCountChange(Math.max(1, Math.floor(n) || 1))
   }
+
+  const perTeam = rosterSize(gameMode)
+  const needForFull = teamCount * perTeam
 
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -79,15 +90,14 @@ export function TeamSetup({
         </div>
 
         <p className="text-xs leading-relaxed text-ow-mist/50">
-          {teamCount >= 2
-            ? `${teamCount}팀 토너먼트 · 팀당 탱1·딜2·힐2 (5인) 기준으로 짭니다.`
-            : '1팀은 연습/내부 분배용 · 탱1·딜2·힐2 구성.'}
+          {modeDisplayName(gameMode)} · {compositionSummary(gameMode)}
+          {teamCount >= 2 ? ` · ${teamCount}팀 토너먼트` : ' · 1팀 연습용'}
           {playerCount > 0 && teamCount > 0 && (
             <span className="mt-0.5 block text-ow-mist/40 sm:mt-0 sm:ml-1 sm:inline">
               · 팀당 약 {(playerCount / teamCount).toFixed(1)}명
-              {playerCount >= teamCount * 5
-                ? ' (5인 완편 가능)'
-                : ` · 완편까지 ${teamCount * 5 - playerCount}명 부족`}
+              {playerCount >= needForFull
+                ? ` (${perTeam}인 완편 가능)`
+                : ` · 완편까지 ${needForFull - playerCount}명 부족`}
             </span>
           )}
         </p>

@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Crosshair, Users } from 'lucide-react'
+import { ModeSelect } from './components/ModeSelect'
 import { PlayerForm } from './components/PlayerForm'
 import { PlayerList } from './components/PlayerList'
 import { TeamSetup } from './components/TeamSetup'
 import { TeamResults } from './components/TeamResults'
 import { Tournament } from './components/Tournament'
-import { balanceTeams } from './lib/balance'
+import {
+  balanceTeams,
+  compositionSummary,
+  modeDisplayName,
+} from './lib/balance'
 import { createBracket, setMatchWinner } from './lib/tournament'
-import type { Match, Player, Team } from './types'
+import type { GameMode, Match, Player, Team } from './types'
 import { normalizePlayer } from './constants'
 
 const STORAGE_KEY = 'squad-forge-players'
+const MODE_KEY = 'squad-forge-mode'
 
 function loadPlayers(): Player[] {
   try {
@@ -26,8 +32,14 @@ function loadPlayers(): Player[] {
   }
 }
 
+function loadMode(): GameMode {
+  const raw = localStorage.getItem(MODE_KEY)
+  return raw === '6v6' ? '6v6' : '5v5'
+}
+
 export default function App() {
   const [players, setPlayers] = useState<Player[]>(loadPlayers)
+  const [gameMode, setGameMode] = useState<GameMode>(loadMode)
   const [teamCount, setTeamCount] = useState(2)
   const [teams, setTeams] = useState<Team[]>([])
   const [matches, setMatches] = useState<Match[]>([])
@@ -36,6 +48,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(players))
   }, [players])
+
+  useEffect(() => {
+    localStorage.setItem(MODE_KEY, gameMode)
+  }, [gameMode])
 
   function addPlayer(player: Player) {
     setPlayers((prev) => [...prev, player])
@@ -54,8 +70,13 @@ export default function App() {
     setHasBalanced(false)
   }
 
+  function handleModeChange(mode: GameMode) {
+    setGameMode(mode)
+    setHasBalanced(false)
+  }
+
   function handleBalance() {
-    const balanced = balanceTeams(players, teamCount)
+    const balanced = balanceTeams(players, teamCount, gameMode)
     setTeams(balanced)
     setMatches(createBracket(balanced))
     setHasBalanced(true)
@@ -96,23 +117,27 @@ export default function App() {
             </h1>
 
             <p className="animate-rise-delay-2 mt-5 max-w-lg text-[0.95rem] leading-relaxed text-ow-mist/80 sm:mt-6 sm:text-lg">
-              닉네임·포지션·티어로 역할별 실력을 맞춘 팀을 만들고,
-              인원 많은 서버 내전·토너먼트까지 한곳에서 돌리세요.
+              5:5 · 6:6 모드로 역할별 티어를 맞춰 팀을 짜고,
+              대규모 내전·토너먼트까지 한곳에서 돌리세요.
             </p>
 
             <div className="animate-rise-delay-3 mt-7 flex w-full flex-col gap-3 sm:mt-8 sm:w-auto sm:flex-row sm:flex-wrap">
-              <a href="#lobby" className="btn-primary w-full sm:w-auto">
+              <a href="#mode" className="btn-primary w-full sm:w-auto">
                 <Users size={18} />
-                로비 시작
+                모드 선택
               </a>
-              <a href="#results" className="btn-ghost w-full sm:w-auto">
-                결과 보기
+              <a href="#lobby" className="btn-ghost w-full sm:w-auto">
+                로비 시작
               </a>
             </div>
           </div>
         </header>
 
         <main className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:space-y-10 sm:px-8 sm:py-16 md:px-10">
+          <div id="mode" className="scroll-mt-4">
+            <ModeSelect gameMode={gameMode} onChange={handleModeChange} />
+          </div>
+
           <section
             id="lobby"
             className="section-panel animate-rise space-y-5 p-4 clip-angle sm:space-y-6 sm:p-7 scroll-mt-4"
@@ -122,8 +147,9 @@ export default function App() {
                 로비
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
-                팀당 탱커 1 · 딜러 2 · 힐러 2. 포지션별 티어를 모두 적은 뒤 무작위를 켜면 빈
-                슬롯을 자동으로 채웁니다. 미배치/언랭도 선택 가능합니다.
+                {modeDisplayName(gameMode)} · {compositionSummary(gameMode)}. 포지션별
+                티어를 적은 뒤 무작위를 켜면 빈 슬롯을 자동으로 채웁니다. 미배치/언랭도
+                가능합니다.
               </p>
             </div>
 
@@ -139,6 +165,7 @@ export default function App() {
 
           <section className="section-panel animate-rise-delay-1 p-4 clip-angle sm:p-7">
             <TeamSetup
+              gameMode={gameMode}
               teamCount={teamCount}
               onTeamCountChange={(n) => {
                 setTeamCount(n)
@@ -158,7 +185,7 @@ export default function App() {
           <div id="results" className="scroll-mt-4 space-y-8 sm:scroll-mt-8 sm:space-y-10">
             {hasBalanced && (
               <>
-                <TeamResults teams={teams} />
+                <TeamResults teams={teams} gameMode={gameMode} />
                 <Tournament
                   teams={teams}
                   matches={matches}

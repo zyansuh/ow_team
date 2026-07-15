@@ -8,29 +8,33 @@ import {
   playerRoleMmr,
 } from '../constants'
 import {
-  TEAM_COMPOSITION,
   averageMmr,
   compositionLabel,
+  compositionSummary,
+  getComposition,
   isFullRoster,
+  modeDisplayName,
   roleAverageMmr,
   rolePlayerCount,
 } from '../lib/balance'
-import type { SlottedRole, Team } from '../types'
+import type { GameMode, SlottedRole, Team } from '../types'
 
 const TEAM_ACCENTS = ['#f99e1a', '#38bdf8', '#34d399', '#f472b6']
 const SLOT_ORDER: SlottedRole[] = ['tank', 'healer', 'dealer']
 
 interface TeamResultsProps {
   teams: Team[]
+  gameMode: GameMode
 }
 
-export function TeamResults({ teams }: TeamResultsProps) {
+export function TeamResults({ teams, gameMode }: TeamResultsProps) {
   if (teams.length === 0 || teams.every((t) => t.members.length === 0)) {
     return null
   }
 
   const avgList = teams.map((t) => averageMmr(t))
   const maxAvg = Math.max(...avgList, 1)
+  const comp = getComposition(gameMode)
 
   return (
     <section className="animate-rise-delay-2 space-y-4 sm:space-y-5">
@@ -39,8 +43,10 @@ export function TeamResults({ teams }: TeamResultsProps) {
           팀 편성 결과
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
-          팀당 <span className="text-ow-mist/85">탱커 1 · 딜러 2 · 힐러 2</span> 기준으로
-          맞췄습니다. 무작위(플렉스)는 빈 슬롯에 해당 포지션 티어로 채워집니다.
+          <span className="text-ow-orange">{modeDisplayName(gameMode)} 모드</span>
+          {' · '}
+          팀당 <span className="text-ow-mist/85">{compositionSummary(gameMode)}</span> 기준.
+          무작위(플렉스)는 빈 슬롯에 해당 포지션 티어로 채워집니다.
         </p>
       </header>
 
@@ -53,7 +59,7 @@ export function TeamResults({ teams }: TeamResultsProps) {
             (a, b) =>
               SLOT_ORDER.indexOf(a.slottedRole) - SLOT_ORDER.indexOf(b.slottedRole),
           )
-          const full = isFullRoster(team)
+          const full = isFullRoster(team, gameMode)
 
           return (
             <article
@@ -89,7 +95,7 @@ export function TeamResults({ teams }: TeamResultsProps) {
                   <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
                     {SLOT_ORDER.map((role) => {
                       const count = rolePlayerCount(team, role)
-                      const need = TEAM_COMPOSITION[role]
+                      const need = comp[role]
                       if (count === 0 && need === 0) return null
                       const roleAvg = roleAverageMmr(team, role)
                       return (
@@ -162,8 +168,7 @@ export function TeamResults({ teams }: TeamResultsProps) {
                             .filter((r) => r.position !== 'random' && r.position !== slottedRole)
                             .sort(
                               (a, b) =>
-                                POSITION_ORDER.indexOf(a.position) -
-                                POSITION_ORDER.indexOf(b.position),
+                                POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position),
                             )
                             .map((role) => (
                               <span
