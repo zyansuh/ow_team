@@ -24,17 +24,18 @@ export function TeamResults({ teams }: TeamResultsProps) {
   const maxAvg = Math.max(...avgList, 1)
 
   return (
-    <section className="space-y-5 animate-rise-delay-2">
+    <section className="animate-rise-delay-2 space-y-4 sm:space-y-5">
       <header>
-        <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-ow-cream sm:text-3xl">
+        <h2 className="text-xl font-bold tracking-tight text-ow-cream sm:text-3xl sm:font-display sm:uppercase sm:tracking-wide">
           팀 편성 결과
         </h2>
-        <p className="mt-1 text-sm text-ow-mist/65">
-          탱커·힐러·딜러를 각각 티어가 비슷하도록 나눴습니다. 포지션별 평균이 가까울수록 대등한 매치입니다.
+        <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
+          탱커·힐러·딜러를 각각 티어가 비슷하도록 나눴습니다. 포지션별 평균이 가까울수록 대등한
+          매치입니다.
         </p>
       </header>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
         {teams.map((team, ti) => {
           const accent = TEAM_ACCENTS[ti % TEAM_ACCENTS.length]
           const avg = averageMmr(team)
@@ -49,22 +50,20 @@ export function TeamResults({ teams }: TeamResultsProps) {
               className="section-panel overflow-hidden clip-angle"
               style={{ borderTop: `3px solid ${accent}` }}
             >
-              <div className="border-b border-white/8 px-4 py-3">
+              <div className="border-b border-white/8 px-3 py-3 sm:px-4">
                 <div className="flex items-baseline justify-between gap-2">
                   <h3
-                    className="font-display text-xl font-bold uppercase tracking-wider"
+                    className="text-lg font-bold tracking-wide sm:text-xl sm:font-display sm:uppercase"
                     style={{ color: accent }}
                   >
                     {team.name}
                   </h3>
-                  <span className="text-xs text-ow-mist/50">{team.players.length}명</span>
+                  <span className="shrink-0 text-xs text-ow-mist/50">{team.players.length}명</span>
                 </div>
                 <div className="mt-2 space-y-1">
                   <div className="flex justify-between text-[11px] text-ow-mist/55">
                     <span>평균 MMR</span>
-                    <span className="font-display text-sm font-semibold text-ow-cream">
-                      {avg.toFixed(1)}
-                    </span>
+                    <span className="text-sm font-semibold text-ow-cream">{avg.toFixed(1)}</span>
                   </div>
                   <div className="h-1.5 overflow-hidden bg-ow-slate/80">
                     <div
@@ -97,7 +96,10 @@ export function TeamResults({ teams }: TeamResultsProps) {
                   <li className="px-4 py-6 text-center text-sm text-ow-mist/40">비어 있음</li>
                 )}
                 {sortedPlayers.map((player) => (
-                  <li key={player.id} className="flex items-center gap-2.5 px-4 py-2.5">
+                  <li
+                    key={player.id}
+                    className="flex min-w-0 items-center gap-2 px-3 py-2.5 sm:gap-2.5 sm:px-4"
+                  >
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
                       style={{ background: POSITION_COLORS[player.position] }}
@@ -105,7 +107,7 @@ export function TeamResults({ teams }: TeamResultsProps) {
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{player.nickname}</p>
-                      <p className="text-[11px] text-ow-mist/50">
+                      <p className="truncate text-[11px] text-ow-mist/50">
                         {POSITION_LABELS[player.position]}
                       </p>
                     </div>
@@ -118,7 +120,7 @@ export function TeamResults({ teams }: TeamResultsProps) {
                     >
                       {formatTier(player.tier)}
                     </span>
-                    <span className="w-6 text-right text-[10px] text-ow-mist/35">
+                    <span className="hidden w-6 shrink-0 text-right text-[10px] text-ow-mist/35 sm:block">
                       {tierToMmr(player.tier)}
                     </span>
                   </li>

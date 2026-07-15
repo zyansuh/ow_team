@@ -30,60 +30,56 @@ export function Tournament({ teams, matches, onPickWinner }: TournamentProps) {
   const champion = findChampionMatch(matches)
 
   return (
-    <section className="space-y-5 animate-rise-delay-3">
+    <section className="animate-rise-delay-3 space-y-4 sm:space-y-5">
       <header>
-        <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-ow-cream sm:text-3xl">
+        <h2 className="text-xl font-bold tracking-tight text-ow-cream sm:text-3xl sm:font-display sm:uppercase sm:tracking-wide">
           토너먼트
         </h2>
-        <p className="mt-1 text-sm text-ow-mist/65">
-          {teams.length}팀 싱글 엘리미네이션 · 승자를 클릭하면 다음 라운드로 올라갑니다.
+        <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
+          {teams.length}팀 싱글 엘리미네이션 · 승자를 탭하면 다음 라운드로 올라갑니다.
+          <span className="mt-0.5 block text-ow-mist/40 sm:mt-0 sm:ml-1 sm:inline">
+            (모바일에서는 좌우로 밀어 보세요)
+          </span>
         </p>
       </header>
 
       {champion && (
-        <div className="section-panel flex items-center gap-3 border-ow-orange/40 px-5 py-4 clip-angle animate-float">
-          <Crown className="text-ow-orange" size={28} />
-          <div>
-            <p className="font-display text-xs uppercase tracking-widest text-ow-orange">
-              Champion
+        <div className="section-panel animate-float flex items-center gap-3 border-ow-orange/40 px-4 py-3.5 clip-angle sm:px-5 sm:py-4">
+          <Crown className="shrink-0 text-ow-orange" size={24} />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold tracking-widest text-ow-orange uppercase">
+              우승
             </p>
-            <p className="font-display text-2xl font-bold text-ow-cream">
+            <p className="truncate text-xl font-bold text-ow-cream sm:text-2xl">
               {teamName(teams, champion.winner)}
             </p>
           </div>
         </div>
       )}
 
-      <div className="-mx-1 overflow-x-auto pb-2">
-        <div
-          className="flex gap-5 px-1"
-          style={{ minWidth: rounds.length > 2 ? `${rounds.length * 280}px` : undefined }}
-        >
-          {rounds.map((round) => {
-            const roundMatches = matches.filter((m) => m.round === round)
-            // 부전승으로 이미 끝난 첫 라운드 경기는 접어두지 않고 표시하되,
-            // 양쪽 다 없는 빈 매치는 숨김
-            const visible = roundMatches.filter(
-              (m) => m.teamA !== null || m.teamB !== null || m.round > 1,
-            )
+      <div className="bracket-scroll">
+        {rounds.map((round) => {
+          const roundMatches = matches.filter((m) => m.round === round)
+          const visible = roundMatches.filter(
+            (m) => m.teamA !== null || m.teamB !== null || m.round > 1,
+          )
 
-            return (
-              <div key={round} className="w-[270px] shrink-0 space-y-3">
-                <p className="font-display text-xs uppercase tracking-widest text-ow-mist/55">
-                  {roundTitle(round, maxRound, visible.length)}
-                </p>
-                {visible.map((match) => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    teams={teams}
-                    onPickWinner={onPickWinner}
-                  />
-                ))}
-              </div>
-            )
-          })}
-        </div>
+          return (
+            <div key={round} className="bracket-round space-y-3">
+              <p className="sticky top-0 text-xs font-semibold tracking-wide text-ow-mist/55">
+                {roundTitle(round, maxRound, visible.length)}
+              </p>
+              {visible.map((match) => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  teams={teams}
+                  onPickWinner={onPickWinner}
+                />
+              ))}
+            </div>
+          )
+        })}
       </div>
     </section>
   )
@@ -105,14 +101,12 @@ function MatchCard({
 
   return (
     <article className="section-panel overflow-hidden clip-angle">
-      <div className="border-b border-white/8 px-4 py-2">
-        <span className="font-display text-sm font-semibold uppercase tracking-wider text-ow-orange">
+      <div className="flex flex-wrap items-center gap-x-2 border-b border-white/8 px-3 py-2 sm:px-4">
+        <span className="text-sm font-semibold tracking-wide text-ow-orange">
           {match.label}
         </span>
         {isBye && match.winner !== null && (
-          <span className="ml-2 text-[10px] uppercase tracking-widest text-ow-mist/40">
-            부전승
-          </span>
+          <span className="text-[10px] tracking-widest text-ow-mist/40 uppercase">부전승</span>
         )}
       </div>
 
@@ -124,7 +118,7 @@ function MatchCard({
           disabled={!ready || match.teamA === null}
           onClick={() => match.teamA !== null && onPickWinner(match.id, match.teamA)}
         />
-        <div className="flex items-center justify-center px-2 font-display text-xs font-bold text-ow-mist/40">
+        <div className="flex items-center justify-center px-1.5 text-xs font-bold text-ow-mist/40 sm:px-2">
           VS
         </div>
         <Slot
@@ -137,7 +131,7 @@ function MatchCard({
       </div>
 
       {!ready && !isBye && (
-        <p className="border-t border-white/8 px-4 py-2 text-center text-xs text-ow-mist/40">
+        <p className="border-t border-white/8 px-3 py-2 text-center text-xs text-ow-mist/40 sm:px-4">
           이전 경기 결과를 기다려 주세요
         </p>
       )}
@@ -165,23 +159,23 @@ function Slot({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`px-3 py-4 text-center transition ${
+      className={`min-h-[72px] px-2 py-3 text-center transition sm:min-h-0 sm:px-3 sm:py-4 ${
         isWinner
           ? 'bg-ow-orange/20 text-ow-orange'
           : disabled
             ? 'text-ow-mist/35'
-            : 'text-ow-cream hover:bg-white/5'
+            : 'text-ow-cream active:bg-white/10 hover:bg-white/5'
       }`}
     >
-      <span className="font-display text-base font-bold uppercase tracking-wide">{name}</span>
+      <span className="block truncate text-sm font-bold tracking-wide sm:text-base">{name}</span>
       {isWinner && (
-        <span className="mt-1 block text-[10px] uppercase tracking-widest text-ow-orange">
-          Winner
+        <span className="mt-1 block text-[10px] tracking-widest text-ow-orange uppercase">
+          승자
         </span>
       )}
       {!disabled && !isWinner && teamId !== null && (
-        <span className="mt-1 block text-[10px] uppercase tracking-widest text-ow-mist/35">
-          클릭 → 승자
+        <span className="mt-1 block text-[10px] tracking-widest text-ow-mist/35">
+          탭 → 승자
         </span>
       )}
     </button>
