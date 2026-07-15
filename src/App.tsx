@@ -80,19 +80,21 @@ export default function App() {
           <div className="relative mx-auto flex min-h-[72svh] max-w-5xl flex-col justify-center px-5 py-16 sm:px-8 sm:min-h-[68svh]">
             <div className="animate-rise flex items-center gap-2 text-ow-orange">
               <Crosshair size={18} />
-              <span className="font-display text-sm font-semibold uppercase tracking-[0.25em]">
-                Overwatch Custom Lobby
+              <span className="text-sm font-semibold tracking-[0.12em] text-ow-orange">
+                오버워치 커스텀 · 대규모 내전
               </span>
             </div>
 
-            <h1 className="animate-rise-delay-1 mt-4 font-display text-6xl font-bold uppercase leading-none tracking-wide text-ow-cream sm:text-7xl md:text-8xl">
-              Squad
-              <br />
-              <span className="text-ow-orange">Forge</span>
+            <h1 className="animate-rise-delay-1 mt-5 font-bold leading-[1.05] tracking-tight text-ow-cream">
+              <span className="block text-5xl sm:text-6xl md:text-7xl">티어맞춤</span>
+              <span className="mt-1 block text-6xl text-ow-orange sm:text-7xl md:text-8xl">
+                팀짜기
+              </span>
             </h1>
 
-            <p className="animate-rise-delay-2 mt-5 max-w-md text-base text-ow-mist/75 sm:text-lg">
-              닉네임·포지션·티어를 넣고, 역할별로 비슷한 실력의 팀으로 나눠 대규모 내전·토너먼트까지.
+            <p className="animate-rise-delay-2 mt-6 max-w-lg text-base leading-relaxed text-ow-mist/80 sm:text-lg">
+              닉네임·포지션·티어로 역할별 실력을 맞춘 팀을 만들고,
+              인원 많은 서버 내전·토너먼트까지 한곳에서 돌리세요.
             </p>
 
             <div className="animate-rise-delay-3 mt-8 flex flex-wrap gap-3">
@@ -164,7 +166,7 @@ export default function App() {
         </main>
 
         <footer className="border-t border-white/8 py-8 text-center text-xs text-ow-mist/35">
-          <p className="font-display tracking-widest uppercase">Squad Forge · Custom Team Builder</p>
+          <p className="tracking-wide">티어맞춤 팀짜기 · 오버워치 내전용 팀 편성</p>
         </footer>
       </div>
     </div>
