@@ -5,8 +5,10 @@ import {
   POSITION_ORDER,
   RANK_COLORS,
   formatTier,
+  isFlex,
   playerOverallMmr,
   primaryPosition,
+  specificRoles,
 } from '../constants'
 import type { Player } from '../types'
 
@@ -39,10 +41,8 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {players.map((player, i) => {
           const primary = primaryPosition(player)
-          const roles = [...player.roles].sort(
-            (a, b) =>
-              POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position),
-          )
+          const specs = specificRoles(player)
+          const flex = isFlex(player)
 
           return (
             <li
@@ -57,9 +57,12 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
                   color: POSITION_COLORS[primary],
                   border: `1px solid ${POSITION_COLORS[primary]}66`,
                 }}
-                title={roles.map((r) => POSITION_LABELS[r.position]).join(', ')}
               >
-                {roles.length > 1 ? roles.length : POSITION_LABELS[primary][0]}
+                {flex && specs.length === 0
+                  ? '무'
+                  : specs.length > 1
+                    ? specs.length
+                    : POSITION_LABELS[primary][0]}
               </span>
 
               <div className="min-w-0 flex-1">
@@ -70,25 +73,58 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
                   </span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {roles.map((role) => (
+                  {[...specs]
+                    .sort(
+                      (a, b) =>
+                        POSITION_ORDER.indexOf(a.position) -
+                        POSITION_ORDER.indexOf(b.position),
+                    )
+                    .map((role) => (
+                      <span
+                        key={role.position}
+                        className="tier-chip"
+                        style={{
+                          borderColor: RANK_COLORS[role.tier.rank],
+                          color: POSITION_COLORS[role.position],
+                        }}
+                      >
+                        <span className="opacity-80">{POSITION_LABELS[role.position]}</span>
+                        <span
+                          className="ml-1"
+                          style={{ color: RANK_COLORS[role.tier.rank] }}
+                        >
+                          {formatTier(role.tier)}
+                        </span>
+                      </span>
+                    ))}
+                  {flex && specs.length === 0 && (
                     <span
-                      key={role.position}
                       className="tier-chip"
                       style={{
-                        borderColor: RANK_COLORS[role.tier.rank],
-                        color: POSITION_COLORS[role.position],
+                        borderColor: RANK_COLORS[player.roles[0].tier.rank],
+                        color: POSITION_COLORS.random,
                       }}
-                      title={`${POSITION_LABELS[role.position]} ${formatTier(role.tier)}`}
                     >
-                      <span className="opacity-80">{POSITION_LABELS[role.position]}</span>
+                      <span className="opacity-80">무작위</span>
                       <span
                         className="ml-1"
-                        style={{ color: RANK_COLORS[role.tier.rank] }}
+                        style={{ color: RANK_COLORS[player.roles[0].tier.rank] }}
                       >
-                        {formatTier(role.tier)}
+                        {formatTier(player.roles[0].tier)}
                       </span>
                     </span>
-                  ))}
+                  )}
+                  {flex && specs.length > 0 && (
+                    <span
+                      className="tier-chip"
+                      style={{
+                        borderColor: POSITION_COLORS.random,
+                        color: POSITION_COLORS.random,
+                      }}
+                    >
+                      플렉스
+                    </span>
+                  )}
                 </div>
               </div>
 

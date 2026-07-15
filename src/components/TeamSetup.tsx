@@ -80,11 +80,14 @@ export function TeamSetup({
 
         <p className="text-xs leading-relaxed text-ow-mist/50">
           {teamCount >= 2
-            ? `${teamCount}팀 토너먼트 브래킷이 함께 생성됩니다. 대규모 내전도 OK.`
-            : '1팀은 연습/내부 분배용입니다.'}
+            ? `${teamCount}팀 토너먼트 · 팀당 탱1·딜2·힐2 (5인) 기준으로 짭니다.`
+            : '1팀은 연습/내부 분배용 · 탱1·딜2·힐2 구성.'}
           {playerCount > 0 && teamCount > 0 && (
             <span className="mt-0.5 block text-ow-mist/40 sm:mt-0 sm:ml-1 sm:inline">
               · 팀당 약 {(playerCount / teamCount).toFixed(1)}명
+              {playerCount >= teamCount * 5
+                ? ' (5인 완편 가능)'
+                : ` · 완편까지 ${teamCount * 5 - playerCount}명 부족`}
             </span>
           )}
         </p>

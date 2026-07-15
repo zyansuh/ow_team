@@ -4,20 +4,28 @@ import {
   POSITION_ORDER,
   RANK_COLORS,
   formatTier,
-  hasRole,
-  primaryPosition,
+  isFlex,
+  playerRoleMmr,
 } from '../constants'
-import { averageMmr, roleAverageMmr, rolePlayerCount } from '../lib/balance'
-import type { Team } from '../types'
+import {
+  TEAM_COMPOSITION,
+  averageMmr,
+  compositionLabel,
+  isFullRoster,
+  roleAverageMmr,
+  rolePlayerCount,
+} from '../lib/balance'
+import type { SlottedRole, Team } from '../types'
 
 const TEAM_ACCENTS = ['#f99e1a', '#38bdf8', '#34d399', '#f472b6']
+const SLOT_ORDER: SlottedRole[] = ['tank', 'healer', 'dealer']
 
 interface TeamResultsProps {
   teams: Team[]
 }
 
 export function TeamResults({ teams }: TeamResultsProps) {
-  if (teams.length === 0 || teams.every((t) => t.players.length === 0)) {
+  if (teams.length === 0 || teams.every((t) => t.members.length === 0)) {
     return null
   }
 
@@ -31,8 +39,8 @@ export function TeamResults({ teams }: TeamResultsProps) {
           팀 편성 결과
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
-          포지션별 티어를 반영해 탱커·힐러·딜러가 비슷하도록 나눴습니다. 한 명이 여러 포지션이면
-          각 역할 티어가 함께 고려됩니다.
+          팀당 <span className="text-ow-mist/85">탱커 1 · 딜러 2 · 힐러 2</span> 기준으로
+          맞췄습니다. 무작위(플렉스)는 빈 슬롯에 해당 포지션 티어로 채워집니다.
         </p>
       </header>
 
@@ -41,11 +49,11 @@ export function TeamResults({ teams }: TeamResultsProps) {
           const accent = TEAM_ACCENTS[ti % TEAM_ACCENTS.length]
           const avg = averageMmr(team)
           const barWidth = `${(avg / maxAvg) * 100}%`
-          const sortedPlayers = [...team.players].sort(
+          const sortedMembers = [...team.members].sort(
             (a, b) =>
-              POSITION_ORDER.indexOf(primaryPosition(a)) -
-              POSITION_ORDER.indexOf(primaryPosition(b)),
+              SLOT_ORDER.indexOf(a.slottedRole) - SLOT_ORDER.indexOf(b.slottedRole),
           )
+          const full = isFullRoster(team)
 
           return (
             <article
@@ -61,8 +69,12 @@ export function TeamResults({ teams }: TeamResultsProps) {
                   >
                     {team.name}
                   </h3>
-                  <span className="shrink-0 text-xs text-ow-mist/50">{team.players.length}명</span>
+                  <span className="shrink-0 text-xs text-ow-mist/50">
+                    {team.members.length}명
+                    {full ? ' · 완편' : ''}
+                  </span>
                 </div>
+                <p className="mt-1 text-[11px] text-ow-mist/50">{compositionLabel(team)}</p>
                 <div className="mt-2 space-y-1">
                   <div className="flex justify-between text-[11px] text-ow-mist/55">
                     <span>평균 MMR</span>
@@ -75,9 +87,10 @@ export function TeamResults({ teams }: TeamResultsProps) {
                     />
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
-                    {(['tank', 'healer', 'dealer'] as const).map((role) => {
+                    {SLOT_ORDER.map((role) => {
                       const count = rolePlayerCount(team, role)
-                      if (count === 0) return null
+                      const need = TEAM_COMPOSITION[role]
+                      if (count === 0 && need === 0) return null
                       const roleAvg = roleAverageMmr(team, role)
                       return (
                         <span
@@ -85,8 +98,10 @@ export function TeamResults({ teams }: TeamResultsProps) {
                           className="text-[11px]"
                           style={{ color: POSITION_COLORS[role] }}
                         >
-                          {POSITION_LABELS[role]} {roleAvg.toFixed(1)}
-                          <span className="text-ow-mist/35"> ({count})</span>
+                          {POSITION_LABELS[role]} {count}/{need}
+                          {count > 0 && (
+                            <span className="text-ow-mist/35"> · {roleAvg.toFixed(1)}</span>
+                          )}
                         </span>
                       )
                     })}
@@ -95,16 +110,13 @@ export function TeamResults({ teams }: TeamResultsProps) {
               </div>
 
               <ul className="divide-y divide-white/5">
-                {sortedPlayers.length === 0 && (
+                {sortedMembers.length === 0 && (
                   <li className="px-4 py-6 text-center text-sm text-ow-mist/40">비어 있음</li>
                 )}
-                {sortedPlayers.map((player) => {
-                  const roles = [...player.roles].sort(
-                    (a, b) =>
-                      POSITION_ORDER.indexOf(a.position) -
-                      POSITION_ORDER.indexOf(b.position),
-                  )
-                  const primary = primaryPosition(player)
+                {sortedMembers.map((member) => {
+                  const { player, slottedRole } = member
+                  const flex = isFlex(player)
+                  const slotTier = player.roles.find((r) => r.position === slottedRole)?.tier
 
                   return (
                     <li
@@ -113,30 +125,66 @@ export function TeamResults({ teams }: TeamResultsProps) {
                     >
                       <span
                         className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
-                        style={{ background: POSITION_COLORS[primary] }}
+                        style={{ background: POSITION_COLORS[slottedRole] }}
                       />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{player.nickname}</p>
                         <div className="mt-1 flex flex-wrap gap-1">
-                          {roles.map((role) => (
+                          <span
+                            className="tier-chip !text-[10px]"
+                            style={{
+                              borderColor: POSITION_COLORS[slottedRole],
+                              color: POSITION_COLORS[slottedRole],
+                            }}
+                          >
+                            배정 {POSITION_LABELS[slottedRole]}
+                            {slotTier && (
+                              <span
+                                className="ml-1"
+                                style={{ color: RANK_COLORS[slotTier.rank] }}
+                              >
+                                {formatTier(slotTier)}
+                              </span>
+                            )}
+                          </span>
+                          {flex && (
                             <span
-                              key={role.position}
                               className="tier-chip !text-[10px]"
                               style={{
-                                borderColor: hasRole(player, role.position)
-                                  ? RANK_COLORS[role.tier.rank]
-                                  : undefined,
-                                color: POSITION_COLORS[role.position],
+                                borderColor: POSITION_COLORS.random,
+                                color: POSITION_COLORS.random,
                               }}
                             >
-                              {POSITION_LABELS[role.position]}{' '}
-                              <span style={{ color: RANK_COLORS[role.tier.rank] }}>
-                                {formatTier(role.tier)}
-                              </span>
+                              플렉스
                             </span>
-                          ))}
+                          )}
+                          {[...player.roles]
+                            .filter((r) => r.position !== 'random' && r.position !== slottedRole)
+                            .sort(
+                              (a, b) =>
+                                POSITION_ORDER.indexOf(a.position) -
+                                POSITION_ORDER.indexOf(b.position),
+                            )
+                            .map((role) => (
+                              <span
+                                key={role.position}
+                                className="tier-chip !text-[10px] opacity-60"
+                                style={{
+                                  borderColor: RANK_COLORS[role.tier.rank],
+                                  color: POSITION_COLORS[role.position],
+                                }}
+                              >
+                                {POSITION_LABELS[role.position]}{' '}
+                                <span style={{ color: RANK_COLORS[role.tier.rank] }}>
+                                  {formatTier(role.tier)}
+                                </span>
+                              </span>
+                            ))}
                         </div>
                       </div>
+                      <span className="hidden shrink-0 text-[10px] text-ow-mist/35 sm:block">
+                        {playerRoleMmr(player, slottedRole)}
+                      </span>
                     </li>
                   )
                 })}
