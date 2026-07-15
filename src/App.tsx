@@ -8,6 +8,7 @@ import { Tournament } from './components/Tournament'
 import { balanceTeams } from './lib/balance'
 import { createBracket, setMatchWinner } from './lib/tournament'
 import type { Match, Player, Team } from './types'
+import { normalizePlayer } from './constants'
 
 const STORAGE_KEY = 'squad-forge-players'
 
@@ -15,8 +16,11 @@ function loadPlayers(): Player[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
-    const parsed = JSON.parse(raw) as Player[]
-    return Array.isArray(parsed) ? parsed : []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map((item) => normalizePlayer(item))
+      .filter((p): p is Player => p !== null)
   } catch {
     return []
   }
@@ -118,7 +122,8 @@ export default function App() {
                 로비
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
-                팀원·팀 수 모두 제한 없이 추가할 수 있습니다. 디비전은 5가 낮고 1이 높습니다.
+                팀원·팀 수 제한 없음. 한 명에 포지션을 여러 개 넣고 포지션마다 티어를 적을 수
+                있습니다. 디비전은 5가 낮고 1이 높습니다.
               </p>
             </div>
 

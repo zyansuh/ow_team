@@ -1,15 +1,16 @@
 import {
   POSITION_COLORS,
   POSITION_LABELS,
+  POSITION_ORDER,
   RANK_COLORS,
   formatTier,
-  tierToMmr,
+  hasRole,
+  primaryPosition,
 } from '../constants'
-import { averageMmr, roleAverageMmr } from '../lib/balance'
-import type { Position, Team } from '../types'
+import { averageMmr, roleAverageMmr, rolePlayerCount } from '../lib/balance'
+import type { Team } from '../types'
 
 const TEAM_ACCENTS = ['#f99e1a', '#38bdf8', '#34d399', '#f472b6']
-const ROLE_ORDER: Position[] = ['tank', 'healer', 'dealer', 'random']
 
 interface TeamResultsProps {
   teams: Team[]
@@ -30,8 +31,8 @@ export function TeamResults({ teams }: TeamResultsProps) {
           팀 편성 결과
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
-          탱커·힐러·딜러를 각각 티어가 비슷하도록 나눴습니다. 포지션별 평균이 가까울수록 대등한
-          매치입니다.
+          포지션별 티어를 반영해 탱커·힐러·딜러가 비슷하도록 나눴습니다. 한 명이 여러 포지션이면
+          각 역할 티어가 함께 고려됩니다.
         </p>
       </header>
 
@@ -41,7 +42,9 @@ export function TeamResults({ teams }: TeamResultsProps) {
           const avg = averageMmr(team)
           const barWidth = `${(avg / maxAvg) * 100}%`
           const sortedPlayers = [...team.players].sort(
-            (a, b) => ROLE_ORDER.indexOf(a.position) - ROLE_ORDER.indexOf(b.position),
+            (a, b) =>
+              POSITION_ORDER.indexOf(primaryPosition(a)) -
+              POSITION_ORDER.indexOf(primaryPosition(b)),
           )
 
           return (
@@ -73,7 +76,7 @@ export function TeamResults({ teams }: TeamResultsProps) {
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
                     {(['tank', 'healer', 'dealer'] as const).map((role) => {
-                      const count = team.players.filter((p) => p.position === role).length
+                      const count = rolePlayerCount(team, role)
                       if (count === 0) return null
                       const roleAvg = roleAverageMmr(team, role)
                       return (
@@ -95,36 +98,48 @@ export function TeamResults({ teams }: TeamResultsProps) {
                 {sortedPlayers.length === 0 && (
                   <li className="px-4 py-6 text-center text-sm text-ow-mist/40">비어 있음</li>
                 )}
-                {sortedPlayers.map((player) => (
-                  <li
-                    key={player.id}
-                    className="flex min-w-0 items-center gap-2 px-3 py-2.5 sm:gap-2.5 sm:px-4"
-                  >
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: POSITION_COLORS[player.position] }}
-                      title={POSITION_LABELS[player.position]}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{player.nickname}</p>
-                      <p className="truncate text-[11px] text-ow-mist/50">
-                        {POSITION_LABELS[player.position]}
-                      </p>
-                    </div>
-                    <span
-                      className="tier-chip shrink-0"
-                      style={{
-                        borderColor: RANK_COLORS[player.tier.rank],
-                        color: RANK_COLORS[player.tier.rank],
-                      }}
+                {sortedPlayers.map((player) => {
+                  const roles = [...player.roles].sort(
+                    (a, b) =>
+                      POSITION_ORDER.indexOf(a.position) -
+                      POSITION_ORDER.indexOf(b.position),
+                  )
+                  const primary = primaryPosition(player)
+
+                  return (
+                    <li
+                      key={player.id}
+                      className="flex min-w-0 items-start gap-2 px-3 py-2.5 sm:gap-2.5 sm:px-4"
                     >
-                      {formatTier(player.tier)}
-                    </span>
-                    <span className="hidden w-6 shrink-0 text-right text-[10px] text-ow-mist/35 sm:block">
-                      {tierToMmr(player.tier)}
-                    </span>
-                  </li>
-                ))}
+                      <span
+                        className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: POSITION_COLORS[primary] }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{player.nickname}</p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {roles.map((role) => (
+                            <span
+                              key={role.position}
+                              className="tier-chip !text-[10px]"
+                              style={{
+                                borderColor: hasRole(player, role.position)
+                                  ? RANK_COLORS[role.tier.rank]
+                                  : undefined,
+                                color: POSITION_COLORS[role.position],
+                              }}
+                            >
+                              {POSITION_LABELS[role.position]}{' '}
+                              <span style={{ color: RANK_COLORS[role.tier.rank] }}>
+                                {formatTier(role.tier)}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             </article>
           )
