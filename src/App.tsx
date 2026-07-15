@@ -164,8 +164,11 @@ export default function App() {
           </div>
         </main>
 
-        <footer className="border-t border-white/8 px-4 py-6 text-center text-xs text-ow-mist/35 sm:py-8">
-          <p className="tracking-wide">티어맞춤 팀짜기 · 오버워치 내전용 팀 편성</p>
+        <footer className="border-t border-white/8 px-4 py-6 text-center sm:py-8">
+          <p className="text-xs tracking-wide text-ow-mist/35">
+            티어맞춤 팀짜기 · 오버워치 내전용 팀 편성
+          </p>
+          <p className="mt-2 text-[11px] tracking-wide text-ow-mist/25">made by DANBI</p>
         </footer>
       </div>
     </div>
