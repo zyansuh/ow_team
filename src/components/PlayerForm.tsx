@@ -23,9 +23,9 @@ const SPECIFIC_POSITIONS: Position[] = ['tank', 'healer', 'dealer']
 
 function emptyDraft(): RoleDraft {
   return {
-    tank: { enabled: true, tier: { ...DEFAULT_TIER } },
-    healer: { enabled: true, tier: { ...DEFAULT_TIER } },
-    dealer: { enabled: true, tier: { ...DEFAULT_TIER } },
+    tank: { enabled: false, tier: { ...DEFAULT_TIER } },
+    healer: { enabled: false, tier: { ...DEFAULT_TIER } },
+    dealer: { enabled: false, tier: { ...DEFAULT_TIER } },
     random: { enabled: false, tier: { ...DEFAULT_TIER } },
   }
 }

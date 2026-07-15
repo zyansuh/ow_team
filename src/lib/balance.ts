@@ -4,6 +4,7 @@ import {
   isFlex,
   playerOverallMmr,
   playerRoleMmr,
+  specificRoles,
 } from '../constants'
 import type {
   GameMode,
@@ -107,35 +108,56 @@ function needsSlot(team: Team, role: SlottedRole): boolean {
   return slotCount(team, role) < activeComp[role]
 }
 
-/** 탱커 자리 없거나 이미 1명이면 딜/힐만 선택 */
-function pickNonTankRole(player: Player, team: Team): SlottedRole {
-  const prefer = NON_TANK_ROLES.filter(
-    (role) =>
-      needsSlot(team, role) &&
-      (hasExplicitRole(player, role) || canFlexInto(player, role)),
+function explicitSlottedRoles(player: Player): SlottedRole[] {
+  return specificRoles(player)
+    .map((r) => r.position)
+    .filter((p): p is SlottedRole => p !== 'random')
+}
+
+/** 전담은 명시 포지션만, 플렉스는 canFlexInto 규칙 */
+function canAssignRole(player: Player, role: SlottedRole): boolean {
+  if (hasExplicitRole(player, role)) return true
+  return isFlex(player) && canFlexInto(player, role)
+}
+
+function pickAssignableRole(
+  player: Player,
+  team: Team,
+  candidates: SlottedRole[],
+): SlottedRole | null {
+  const allowed = candidates.filter(
+    (role) => needsSlot(team, role) && canAssignRole(player, role),
   )
-  if (prefer.length > 0) {
-    return [...prefer].sort(
-      (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
-    )[0]
-  }
-
-  const open = NON_TANK_ROLES.filter((role) => needsSlot(team, role))
-  if (open.length > 0) {
-    return [...open].sort(
-      (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
-    )[0]
-  }
-
-  return [...NON_TANK_ROLES].sort(
+  if (allowed.length === 0) return null
+  return [...allowed].sort(
     (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
   )[0]
 }
 
+function soleExplicitRole(player: Player): SlottedRole | null {
+  const roles = explicitSlottedRoles(player)
+  return roles.length === 1 ? roles[0] : null
+}
+
+/** 탱 정원 초과 시 대체 — 명시한 딜/힐만, 없으면 null */
+function pickNonTankRole(player: Player, team: Team): SlottedRole | null {
+  return pickAssignableRole(player, team, NON_TANK_ROLES)
+}
+
 function clampRole(team: Team, player: Player, role: SlottedRole): SlottedRole {
-  if (role === 'tank' && slotCount(team, 'tank') >= activeComp.tank) {
-    return pickNonTankRole(player, team)
+  if (!canAssignRole(player, role)) {
+    const alt = pickAssignableRole(player, team, SLOT_ORDER)
+    if (alt) return alt
+    return soleExplicitRole(player) ?? role
   }
+
+  if (role === 'tank' && slotCount(team, 'tank') >= activeComp.tank) {
+    const alt = pickNonTankRole(player, team)
+    if (alt) return alt
+    // 탱 전담만 선택한 경우 딜/힐로 강제 전환하지 않음
+    if (soleExplicitRole(player) === 'tank') return 'tank'
+  }
+
   return role
 }
 
@@ -227,9 +249,7 @@ function fillEmptySlotsWithFlex(
 
 function bestRoleForPlayer(player: Player, team: Team): SlottedRole {
   const deficitRoles = SLOT_ORDER.filter(
-    (role) =>
-      needsSlot(team, role) &&
-      (hasExplicitRole(player, role) || canFlexInto(player, role)),
+    (role) => needsSlot(team, role) && canAssignRole(player, role),
   )
   if (deficitRoles.length > 0) {
     return [...deficitRoles].sort(
@@ -237,8 +257,13 @@ function bestRoleForPlayer(player: Player, team: Team): SlottedRole {
     )[0]
   }
 
-  // 빈 슬롯 없음 → 탱커 추가 금지, 딜/힐만
-  return pickNonTankRole(player, team)
+  const sole = soleExplicitRole(player)
+  if (sole) return sole
+
+  const nonTank = pickNonTankRole(player, team)
+  if (nonTank) return nonTank
+
+  return explicitSlottedRoles(player)[0] ?? 'dealer'
 }
 
 function placeOverflow(
@@ -257,9 +282,7 @@ function placeOverflow(
       .map((team) => ({
         team,
         emptyRoles: SLOT_ORDER.filter(
-          (role) =>
-            needsSlot(team, role) &&
-            (hasExplicitRole(player, role) || canFlexInto(player, role)),
+          (role) => needsSlot(team, role) && canAssignRole(player, role),
         ),
       }))
       .filter((x) => x.emptyRoles.length > 0)
@@ -341,23 +364,37 @@ function refineSlottedBalance(teams: Team[]): void {
   }
 }
 
-/** 혹시라도 탱커가 2명 이상이면 초과분을 딜/힐로 강제 변경 */
+/** 탱커 정원 초과 시: 딜/힐 가능한 인원만 재배정, 탱 전담은 다른 팀 탱 슬롯으로 이동 */
 function enforceTankCap(teams: Team[]): void {
   for (const team of teams) {
-    const tanks = team.members.filter((m) => m.slottedRole === 'tank')
+    let tanks = team.members.filter((m) => m.slottedRole === 'tank')
     if (tanks.length <= activeComp.tank) continue
 
-    // MMR 높은 1명만 탱커 유지, 나머지 재배정
     const ranked = [...tanks].sort(
       (a, b) =>
         playerRoleMmr(b.player, 'tank') - playerRoleMmr(a.player, 'tank'),
     )
-    for (const extra of ranked.slice(activeComp.tank)) {
-      extra.slottedRole = pickNonTankRole(extra.player, {
+    const extras = ranked.slice(activeComp.tank)
+
+    for (const extra of extras) {
+      const altTeam = teams.find(
+        (t) => t !== team && needsSlot(t, 'tank') && soleExplicitRole(extra.player) === 'tank',
+      )
+      if (altTeam) {
+        team.members = team.members.filter((m) => m !== extra)
+        altTeam.members.push(extra)
+        continue
+      }
+
+      const viewTeam: Team = {
         ...team,
-        // 임시로 이 멤버를 탱이 아닌 것처럼 보고 빈 딜/힐 우선
         members: team.members.filter((m) => m !== extra),
-      })
+      }
+      const altRole = pickNonTankRole(extra.player, viewTeam)
+      if (altRole) {
+        extra.slottedRole = altRole
+      }
+      // 탱 전담만 선택한 경우: 다른 역할로 바꾸지 않고 오버플로 탱으로 유지
     }
   }
 }
