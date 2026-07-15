@@ -17,11 +17,17 @@ export interface Tier {
   division: Division
 }
 
+/** 포지션 하나 + 해당 포지션 티어 */
+export interface RoleEntry {
+  position: Position
+  tier: Tier
+}
+
 export interface Player {
   id: string
   nickname: string
-  position: Position
-  tier: Tier
+  /** 한 명이 여러 포지션·티어를 가질 수 있음 (최소 1개) */
+  roles: RoleEntry[]
 }
 
 export interface Team {
@@ -38,8 +44,6 @@ export interface Match {
   teamB: number | null
   winner: number | null
   label: string
-  /** 승자가 올라가는 다음 매치 */
   nextMatchId: string | null
-  /** 다음 매치의 A/B 슬롯 */
   nextSlot: 'A' | 'B' | null
 }

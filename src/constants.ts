@@ -1,4 +1,4 @@
-import type { Division, Position, RankName, Tier } from './types'
+import type { Division, Player, Position, RankName, RoleEntry, Tier } from './types'
 
 export const RANK_ORDER: RankName[] = [
   'bronze',
@@ -33,6 +33,8 @@ export const RANK_COLORS: Record<RankName, string> = {
   champion: '#f43f5e',
 }
 
+export const POSITION_ORDER: Position[] = ['tank', 'healer', 'dealer', 'random']
+
 export const POSITION_LABELS: Record<Position, string> = {
   tank: '탱커',
   healer: '힐러',
@@ -48,6 +50,8 @@ export const POSITION_COLORS: Record<Position, string> = {
 }
 
 export const DIVISIONS: Division[] = [5, 4, 3, 2, 1]
+
+export const DEFAULT_TIER: Tier = { rank: 'gold', division: 3 }
 
 export function formatTeamName(index: number): string {
   return `${index + 1}팀`
@@ -66,4 +70,79 @@ export function formatTier(tier: Tier): string {
 
 export function createId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+export function hasRole(player: Player, position: Position): boolean {
+  return player.roles.some((r) => r.position === position)
+}
+
+export function getRoleEntry(player: Player, position: Position): RoleEntry | undefined {
+  return player.roles.find((r) => r.position === position)
+}
+
+/** 해당 포지션 티어 MMR. 없으면 0 */
+export function playerRoleMmr(player: Player, position: Position): number {
+  const entry = getRoleEntry(player, position)
+  return entry ? tierToMmr(entry.tier) : 0
+}
+
+/** 팀원 전체 강도: 보유 포지션 MMR 평균 */
+export function playerOverallMmr(player: Player): number {
+  if (player.roles.length === 0) return 0
+  const sum = player.roles.reduce((acc, r) => acc + tierToMmr(r.tier), 0)
+  return sum / player.roles.length
+}
+
+export function primaryPosition(player: Player): Position {
+  const ordered = [...player.roles].sort(
+    (a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position),
+  )
+  return ordered[0]?.position ?? 'random'
+}
+
+/** localStorage 구버전(position+tier) → roles 마이그레이션 */
+export function normalizePlayer(raw: unknown): Player | null {
+  if (!raw || typeof raw !== 'object') return null
+  const data = raw as Record<string, unknown>
+  if (typeof data.id !== 'string' || typeof data.nickname !== 'string') return null
+
+  if (Array.isArray(data.roles) && data.roles.length > 0) {
+    const roles = data.roles
+      .map((r) => normalizeRoleEntry(r))
+      .filter((r): r is RoleEntry => r !== null)
+    if (roles.length === 0) return null
+    return { id: data.id, nickname: data.nickname, roles }
+  }
+
+  // 구형: { position, tier }
+  const position = data.position as Position | undefined
+  const tier = data.tier as Tier | undefined
+  if (
+    position &&
+    POSITION_ORDER.includes(position) &&
+    tier &&
+    typeof tier === 'object' &&
+    'rank' in tier &&
+    'division' in tier
+  ) {
+    return {
+      id: data.id,
+      nickname: data.nickname,
+      roles: [{ position, tier }],
+    }
+  }
+
+  return null
+}
+
+function normalizeRoleEntry(raw: unknown): RoleEntry | null {
+  if (!raw || typeof raw !== 'object') return null
+  const data = raw as Record<string, unknown>
+  const position = data.position as Position | undefined
+  const tier = data.tier as Tier | undefined
+  if (!position || !POSITION_ORDER.includes(position)) return null
+  if (!tier || typeof tier !== 'object' || !('rank' in tier) || !('division' in tier)) {
+    return null
+  }
+  return { position, tier }
 }
