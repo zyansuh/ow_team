@@ -1,32 +1,132 @@
-# React + TypeScript + Vite
+# 티어맞춤 팀짜기
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+오버워치 커스텀·서버 내전을 위한 **역할별 티어 밸런스 팀 편성** 웹앱입니다.  
+닉네임·포지션·티어를 등록하면 탱커/힐러/딜러끼리 실력이 비슷하도록 팀을 나누고, 원하는 팀 수만큼 싱글 엘리미네이션 토너먼트까지 진행할 수 있습니다.
 
-Currently, two official plugins are available:
+> 대규모 서버(수백 명) 내전을 염두에 두고, **팀원·팀 수 모두 제한 없이** 늘릴 수 있게 만들었습니다.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**저장소:** [https://github.com/zyansuh/ow_team](https://github.com/zyansuh/ow_team)
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 주요 기능
 
-## Expanding the Oxlint configuration
+| 기능 | 설명 |
+|------|------|
+| 팀원 등록 | 닉네임, 포지션(탱커/힐러/딜러/무작위), 티어 입력 · 인원 제한 없음 |
+| 티어 체계 | 브론즈~챔피언 × 디비전 1~5 (디비전 5가 낮고 1이 높음) |
+| 포지션별 밸런싱 | 탱커끼리·힐러끼리·딜러끼리 MMR 스네이크 드래프트 후 미세 조정 |
+| 팀 수 | 1팀부터 무제한 (`+/-`, 직접 입력, `+5` / `+10` / `+20`) |
+| 토너먼트 | N팀 싱글 엘리미네이션 · 2의 거듭제곱이 아니면 부전승 자동 처리 |
+| 로컬 저장 | 등록한 팀원 목록을 `localStorage`에 유지 |
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+---
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## 기술 스택
+
+### 코어
+
+| 기술 | 버전대 | 역할 |
+|------|--------|------|
+| [React](https://react.dev/) | 19 | UI 컴포넌트 · 상태 관리 |
+| [TypeScript](https://www.typescriptlang.org/) | 6 | 타입 안전성 (플레이어·팀·매치 모델) |
+| [Vite](https://vite.dev/) | 5 | 개발 서버 · 번들링 · HMR |
+
+### 스타일 · UI
+
+| 기술 | 버전대 | 역할 |
+|------|--------|------|
+| [Tailwind CSS](https://tailwindcss.com/) | 4 | 유틸리티 기반 스타일 (`@tailwindcss/vite`) |
+| [lucide-react](https://lucide.dev/) | 1 | 아이콘 |
+| Google Fonts | — | **Noto Sans KR**, **Rajdhani** |
+
+### 품질 · 도구
+
+| 기술 | 역할 |
+|------|------|
+| [Oxlint](https://oxc.rs/docs/guide/usage/linter) | 린트 |
+| npm | 패키지 관리 |
+
+### 알고리즘 (직접 구현)
+
+- **포지션별 스네이크 드래프트** — 역할 내 고티어부터 팀을 번갈아 배정
+- **동일 포지션 스왑 미세 조정** — 역할별 MMR 편차 최소화
+- **N팀 브래킷** — 다음 2의 거듭제곱으로 패딩 후 부전승 진출, 승자 다음 라운드 연결
+
+백엔드·DB는 사용하지 않으며, 팀원 데이터만 브라우저 `localStorage`에 저장합니다.
+
+---
+
+## 시작하기
+
+### 요구 사항
+
+- Node.js 20+ 권장
+- npm
+
+### 설치 · 실행
+
+```bash
+# 의존성 설치
+npm install
+
+# 개발 서버 (기본 http://localhost:5173)
+npm run dev
+
+# 프로덕션 빌드
+npm run build
+
+# 빌드 결과 미리보기
+npm run preview
+
+# 린트
+npm run lint
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## 사용 방법
+
+1. **로비**에서 팀원 추가 (닉네임 / 포지션 / 티어·디비전)
+2. **팀 수**를 원하는 만큼 설정 (예: 2팀 스크림, 16팀 내전 토너먼트)
+3. **티어 맞춰 팀짜기** 클릭
+4. 결과에서 팀·포지션별 평균 MMR 확인
+5. 토너먼트에서 승자 클릭 → 다음 라운드 진출 · 우승 팀 표시
+
+최소 인원: **팀 수 이상**의 팀원이 등록되어 있어야 편성할 수 있습니다.
+
+---
+
+## 프로젝트 구조
+
+```
+src/
+  App.tsx                 # 페이지 조립 · 로컬 저장 · 편성/토너먼트 상태
+  types.ts                # Player, Team, Match 타입
+  constants.ts            # 티어·포지션 라벨, MMR 변환
+  index.css               # Tailwind + 테마 변수·모션
+  lib/
+    balance.ts            # 포지션별 팀 밸런싱
+    tournament.ts         # N팀 브래킷 생성 · 승자 진출
+  components/
+    PlayerForm.tsx        # 팀원 입력
+    PlayerList.tsx        # 등록 목록
+    TeamSetup.tsx         # 팀 수 · 편성 버튼
+    TeamResults.tsx       # 팀 편성 결과
+    Tournament.tsx        # 토너먼트 UI
+```
+
+---
+
+## 티어 MMR (요약)
+
+디비전은 **5(낮음) → 1(높음)** 입니다.
+
+예: `브론즈 5`가 가장 낮고, `챔피언 1`이 가장 높습니다.  
+내부적으로 `rankIndex * 5 + (6 - division)` 형태의 점수로 비교·배분합니다.
+
+---
+
+## 라이선스
+
+개인·서버 내전 편의용 프로젝트입니다. 필요에 맞게 자유롭게 수정해 사용하세요.
