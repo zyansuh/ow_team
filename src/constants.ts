@@ -49,7 +49,9 @@ export const POSITION_COLORS: Record<Position, string> = {
 
 export const DIVISIONS: Division[] = [5, 4, 3, 2, 1]
 
-export const TEAM_NAMES = ['1팀', '2팀', '3팀', '4팀']
+export function formatTeamName(index: number): string {
+  return `${index + 1}팀`
+}
 
 /** 브론즈5(최저) → 챔피언1(최고). 디비전은 5가 낮고 1이 높음 */
 export function tierToMmr(tier: Tier): number {

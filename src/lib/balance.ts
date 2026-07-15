@@ -1,4 +1,4 @@
-import { TEAM_NAMES, tierToMmr } from '../constants'
+import { formatTeamName, tierToMmr } from '../constants'
 import type { Player, Position, Team } from '../types'
 
 const BALANCED_ROLES: Position[] = ['tank', 'healer', 'dealer']
@@ -7,12 +7,13 @@ const BALANCED_ROLES: Position[] = ['tank', 'healer', 'dealer']
  * 포지션별로 티어가 비슷하도록 팀을 나눕니다.
  * - 탱커끼리 / 힐러끼리 / 딜러끼리 각각 MMR 스네이크 드래프트
  * - 무작위는 전체 균형을 맞추며 배정
+ * - 팀 수는 제한 없음 (대규모 내전용)
  */
 export function balanceTeams(players: Player[], teamCount: number): Team[] {
-  const count = Math.min(4, Math.max(1, teamCount))
+  const count = Math.max(1, Math.floor(teamCount))
   const teams: Team[] = Array.from({ length: count }, (_, i) => ({
     id: i,
-    name: TEAM_NAMES[i],
+    name: formatTeamName(i),
     players: [],
     totalMmr: 0,
   }))
@@ -84,8 +85,10 @@ function addPlayerToTeam(team: Team, player: Player): void {
 function refineSameRoleBalance(teams: Team[]): void {
   if (teams.length < 2) return
 
+  const maxPasses = Math.min(80, Math.max(20, teams.length * 2))
+
   for (const role of BALANCED_ROLES) {
-    for (let pass = 0; pass < 30; pass++) {
+    for (let pass = 0; pass < maxPasses; pass++) {
       const roleStats = teams.map((team) => ({
         team,
         mmr: roleMmr(team, role),
@@ -122,7 +125,6 @@ function refineSameRoleBalance(teams: Team[]): void {
           const newGap = Math.abs(newStrongRole - newWeakRole)
           const roleImprovement = gap - newGap
 
-          // 전체 팀 MMR도 같이 나빠지지 않게
           const newStrongTotal = strongest.team.totalMmr - strongM + weakM
           const newWeakTotal = weakest.team.totalMmr - weakM + strongM
           const oldTotalGap = Math.abs(

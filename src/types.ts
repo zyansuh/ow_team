@@ -38,4 +38,8 @@ export interface Match {
   teamB: number | null
   winner: number | null
   label: string
+  /** 승자가 올라가는 다음 매치 */
+  nextMatchId: string | null
+  /** 다음 매치의 A/B 슬롯 */
+  nextSlot: 'A' | 'B' | null
 }
