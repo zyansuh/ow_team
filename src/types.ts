@@ -49,6 +49,12 @@ export interface Team {
   totalMmr: number
 }
 
+/** 팀짜기에 넣지 않는 예비·대기 인원 */
+export interface ReserveEntry {
+  id: string
+  nickname: string
+}
+
 export interface Match {
   id: string
   round: number

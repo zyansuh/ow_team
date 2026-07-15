@@ -25,9 +25,10 @@ const SLOT_ORDER: SlottedRole[] = ['tank', 'healer', 'dealer']
 interface TeamResultsProps {
   teams: Team[]
   gameMode: GameMode
+  reserves?: { id: string; nickname: string }[]
 }
 
-export function TeamResults({ teams, gameMode }: TeamResultsProps) {
+export function TeamResults({ teams, gameMode, reserves = [] }: TeamResultsProps) {
   if (teams.length === 0 || teams.every((t) => t.members.length === 0)) {
     return null
   }
@@ -49,6 +50,24 @@ export function TeamResults({ teams, gameMode }: TeamResultsProps) {
           무작위(플렉스)는 빈 슬롯에 해당 포지션 티어로 채워집니다.
         </p>
       </header>
+
+      {reserves.length > 0 && (
+        <div className="section-panel rounded-[14px] px-4 py-3.5 sm:px-5">
+          <p className="text-xs font-medium tracking-wide text-ow-mist">
+            예비 명단 · {reserves.length}명
+          </p>
+          <p className="mt-2 flex flex-wrap gap-2">
+            {reserves.map((r) => (
+              <span
+                key={r.id}
+                className="rounded-full border border-ow-cream/10 bg-white/80 px-3 py-1 text-sm text-ow-cream"
+              >
+                {r.nickname}
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
         {teams.map((team, ti) => {

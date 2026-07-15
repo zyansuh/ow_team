@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react'
+import { Trash2, UserMinus } from 'lucide-react'
 import {
   POSITION_COLORS,
   POSITION_LABELS,
@@ -16,9 +16,15 @@ interface PlayerListProps {
   players: Player[]
   onRemove: (id: string) => void
   onClear: () => void
+  onMoveToReserve?: (player: Player) => void
 }
 
-export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
+export function PlayerList({
+  players,
+  onRemove,
+  onClear,
+  onMoveToReserve,
+}: PlayerListProps) {
   if (players.length === 0) {
     return (
       <p className="py-6 text-center text-sm leading-relaxed text-ow-mist">
@@ -47,7 +53,7 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
           return (
             <li
               key={player.id}
-              className="animate-rise flex min-w-0 items-start gap-2.5 rounded-[12px] border border-ow-cream/8 bg-white/80 px-3 py-2.5 sm:gap-3"
+              className="animate-rise flex min-w-0 items-start gap-1.5 rounded-[12px] border border-ow-cream/8 bg-white/80 px-3 py-2.5 sm:gap-2"
               style={{ animationDelay: `${Math.min(i, 12) * 0.04}s` }}
             >
               <span
@@ -128,14 +134,27 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
                 </div>
               </div>
 
-              <button
-                type="button"
-                aria-label={`${player.nickname} 삭제`}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ow-mist/85 transition hover:bg-red-50 hover:text-red-500"
-                onClick={() => onRemove(player.id)}
-              >
-                <Trash2 size={16} />
-              </button>
+              <div className="flex shrink-0 flex-col gap-0.5">
+                {onMoveToReserve && (
+                  <button
+                    type="button"
+                    title="예비로 보내기"
+                    aria-label={`${player.nickname} 예비로`}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-ow-mist/85 transition hover:bg-ow-cream/6 hover:text-ow-orange"
+                    onClick={() => onMoveToReserve(player)}
+                  >
+                    <UserMinus size={15} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label={`${player.nickname} 삭제`}
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-ow-mist/85 transition hover:bg-red-50 hover:text-red-500"
+                  onClick={() => onRemove(player.id)}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </li>
           )
         })}

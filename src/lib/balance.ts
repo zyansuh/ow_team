@@ -56,11 +56,13 @@ export const TEAM_COMPOSITION = MODE_COMPOSITION['5v5']
 /**
  * OW 구성으로 팀을 나눕니다.
  * 5:5 → 탱1·딜2·힐2 / 6:6 → 탱2·딜2·힐2
+ * @param shuffleInput true면 입력 순서를 섞어 다른 편성이 나오도록 함
  */
 export function balanceTeams(
   players: Player[],
   teamCount: number,
   mode: GameMode = '5v5',
+  shuffleInput = false,
 ): Team[] {
   activeComp = MODE_COMPOSITION[mode]
   const count = Math.max(1, Math.floor(teamCount))
@@ -73,15 +75,17 @@ export function balanceTeams(
 
   if (players.length === 0) return teams
 
+  const pool = shuffleInput ? shuffleArray(players) : [...players]
+
   const assigned = new Set<string>()
-  const specialists = players.filter((p) => !isFlex(p))
-  const flexPool = players.filter((p) => isFlex(p))
+  const specialists = pool.filter((p) => !isFlex(p))
+  const flexPool = pool.filter((p) => isFlex(p))
 
   for (const role of SLOT_ORDER) {
-    const pool = specialists.filter(
+    const rolePool = specialists.filter(
       (p) => !assigned.has(p.id) && hasExplicitRole(p, role),
     )
-    fillRoleSlots(role, pool, teams, assigned)
+    fillRoleSlots(role, rolePool, teams, assigned)
   }
 
   const leftoverSpecialists = specialists.filter((p) => !assigned.has(p.id))
@@ -101,6 +105,15 @@ export function balanceTeams(
   recalculateTotals(teams)
 
   return teams
+}
+
+export function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
 }
 
 function slotCount(team: Team, role: SlottedRole): number {
@@ -206,7 +219,11 @@ function fillRoleSlots(
       const aRole = roleMmr(a, role)
       const bRole = roleMmr(b, role)
       if (aRole !== bRole) return aRole - bRole
-      return a.members.length - b.members.length
+      if (a.members.length !== b.members.length) {
+        return a.members.length - b.members.length
+      }
+      // 동점이면 무작위로 갈라 새로 짜기 시 결과가 달라지게
+      return Math.random() - 0.5
     })
 
     addMember(candidates[0], player, role)

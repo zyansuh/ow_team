@@ -3,6 +3,7 @@ import { Crosshair, Users } from 'lucide-react'
 import { ModeSelect } from './components/ModeSelect'
 import { PlayerForm } from './components/PlayerForm'
 import { PlayerList } from './components/PlayerList'
+import { ReserveBench } from './components/ReserveBench'
 import { TeamSetup } from './components/TeamSetup'
 import { TeamResults } from './components/TeamResults'
 import { Tournament } from './components/Tournament'
@@ -12,10 +13,11 @@ import {
   modeDisplayName,
 } from './lib/balance'
 import { createBracket, setMatchWinner } from './lib/tournament'
-import type { GameMode, Match, Player, Team } from './types'
-import { normalizePlayer } from './constants'
+import type { GameMode, Match, Player, ReserveEntry, Team } from './types'
+import { createId, normalizePlayer } from './constants'
 
 const STORAGE_KEY = 'squad-forge-players'
+const RESERVE_KEY = 'squad-forge-reserves'
 const MODE_KEY = 'squad-forge-mode'
 
 function loadPlayers(): Player[] {
@@ -32,6 +34,30 @@ function loadPlayers(): Player[] {
   }
 }
 
+function loadReserves(): ReserveEntry[] {
+  try {
+    const raw = localStorage.getItem(RESERVE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter(
+        (item): item is ReserveEntry =>
+          !!item &&
+          typeof item === 'object' &&
+          typeof (item as ReserveEntry).id === 'string' &&
+          typeof (item as ReserveEntry).nickname === 'string',
+      )
+      .map((item) => ({
+        id: item.id,
+        nickname: item.nickname.trim(),
+      }))
+      .filter((item) => item.nickname.length > 0)
+  } catch {
+    return []
+  }
+}
+
 function loadMode(): GameMode {
   const raw = localStorage.getItem(MODE_KEY)
   return raw === '6v6' ? '6v6' : '5v5'
@@ -39,6 +65,7 @@ function loadMode(): GameMode {
 
 export default function App() {
   const [players, setPlayers] = useState<Player[]>(loadPlayers)
+  const [reserves, setReserves] = useState<ReserveEntry[]>(loadReserves)
   const [gameMode, setGameMode] = useState<GameMode>(loadMode)
   const [teamCount, setTeamCount] = useState(2)
   const [teams, setTeams] = useState<Team[]>([])
@@ -48,6 +75,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(players))
   }, [players])
+
+  useEffect(() => {
+    localStorage.setItem(RESERVE_KEY, JSON.stringify(reserves))
+  }, [reserves])
 
   useEffect(() => {
     localStorage.setItem(MODE_KEY, gameMode)
@@ -70,13 +101,34 @@ export default function App() {
     setHasBalanced(false)
   }
 
+  function addReserve(entry: ReserveEntry) {
+    setReserves((prev) => [...prev, entry])
+  }
+
+  function removeReserve(id: string) {
+    setReserves((prev) => prev.filter((r) => r.id !== id))
+  }
+
+  function clearReserves() {
+    setReserves([])
+  }
+
+  function movePlayerToReserve(player: Player) {
+    setPlayers((prev) => prev.filter((p) => p.id !== player.id))
+    setReserves((prev) => [
+      ...prev,
+      { id: createId(), nickname: player.nickname },
+    ])
+    setHasBalanced(false)
+  }
+
   function handleModeChange(mode: GameMode) {
     setGameMode(mode)
     setHasBalanced(false)
   }
 
-  function handleBalance() {
-    const balanced = balanceTeams(players, teamCount, gameMode)
+  function applyBalance(shuffle: boolean) {
+    const balanced = balanceTeams(players, teamCount, gameMode, shuffle)
     setTeams(balanced)
     setMatches(createBracket(balanced))
     setHasBalanced(true)
@@ -84,6 +136,14 @@ export default function App() {
     requestAnimationFrame(() => {
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
     })
+  }
+
+  function handleBalance() {
+    applyBalance(false)
+  }
+
+  function handleRebalance() {
+    applyBalance(true)
   }
 
   function handlePickWinner(matchId: string, teamId: number) {
@@ -138,8 +198,8 @@ export default function App() {
               <h2 className="section-title text-2xl text-ow-cream sm:text-3xl">로비</h2>
               <p className="mt-1.5 text-sm leading-relaxed text-ow-mist">
                 {modeDisplayName(gameMode)} · {compositionSummary(gameMode)}. 포지션별
-                티어를 적은 뒤 무작위를 켜면 빈 슬롯을 자동으로 채웁니다. 미배치/언랭도
-                가능합니다.
+                티어를 적은 뒤 무작위를 켜면 빈 슬롯을 자동으로 채웁니다. 예비인원은 팀짜기에
+                들어가지 않습니다.
               </p>
             </div>
 
@@ -149,6 +209,16 @@ export default function App() {
                 players={players}
                 onRemove={removePlayer}
                 onClear={clearPlayers}
+                onMoveToReserve={movePlayerToReserve}
+              />
+            </div>
+
+            <div className="border-t border-ow-cream/8 pt-5">
+              <ReserveBench
+                reserves={reserves}
+                onAdd={addReserve}
+                onRemove={removeReserve}
+                onClear={clearReserves}
               />
             </div>
           </section>
@@ -163,7 +233,9 @@ export default function App() {
               }}
               playerCount={players.length}
               onBalance={handleBalance}
+              onRebalance={handleRebalance}
               canBalance={players.length >= teamCount}
+              hasBalanced={hasBalanced}
             />
             {players.length > 0 && players.length < teamCount && (
               <p className="mt-3 text-sm leading-relaxed text-amber-700">
@@ -175,7 +247,11 @@ export default function App() {
           <div id="results" className="scroll-mt-4 space-y-8 sm:scroll-mt-8 sm:space-y-10">
             {hasBalanced && (
               <>
-                <TeamResults teams={teams} gameMode={gameMode} />
+                <TeamResults
+                  teams={teams}
+                  gameMode={gameMode}
+                  reserves={reserves}
+                />
                 <Tournament
                   teams={teams}
                   matches={matches}

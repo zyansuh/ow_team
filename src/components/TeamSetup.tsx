@@ -1,4 +1,4 @@
-import { Minus, Plus, Shuffle, Trophy } from 'lucide-react'
+import { Minus, Plus, RefreshCw, Shuffle, Trophy } from 'lucide-react'
 import {
   compositionSummary,
   modeDisplayName,
@@ -12,7 +12,9 @@ interface TeamSetupProps {
   onTeamCountChange: (n: number) => void
   playerCount: number
   onBalance: () => void
+  onRebalance: () => void
   canBalance: boolean
+  hasBalanced: boolean
 }
 
 export function TeamSetup({
@@ -21,7 +23,9 @@ export function TeamSetup({
   onTeamCountChange,
   playerCount,
   onBalance,
+  onRebalance,
   canBalance,
+  hasBalanced,
 }: TeamSetupProps) {
   function setCount(n: number) {
     onTeamCountChange(Math.max(1, Math.floor(n) || 1))
@@ -103,16 +107,30 @@ export function TeamSetup({
         </p>
       </div>
 
-      <button
-        type="button"
-        className="btn-primary w-full shrink-0 lg:w-auto"
-        disabled={!canBalance}
-        onClick={onBalance}
-      >
-        {teamCount >= 2 ? <Trophy size={18} /> : <Shuffle size={18} />}
-        <span className="truncate">티어 맞춰 팀짜기</span>
-        {playerCount > 0 && <span className="opacity-70">({playerCount}명)</span>}
-      </button>
+      <div className="flex w-full shrink-0 flex-col gap-2 sm:flex-row lg:w-auto lg:flex-col">
+        <button
+          type="button"
+          className="btn-primary w-full lg:w-auto"
+          disabled={!canBalance}
+          onClick={onBalance}
+        >
+          {teamCount >= 2 ? <Trophy size={18} /> : <Shuffle size={18} />}
+          <span className="truncate">티어 맞춰 팀짜기</span>
+          {playerCount > 0 && <span className="opacity-70">({playerCount}명)</span>}
+        </button>
+
+        {hasBalanced && (
+          <button
+            type="button"
+            className="btn-ghost w-full lg:w-auto"
+            disabled={!canBalance}
+            onClick={onRebalance}
+          >
+            <RefreshCw size={18} />
+            <span className="truncate">팀 새로 짜기</span>
+          </button>
+        )}
+      </div>
     </div>
   )
 }
