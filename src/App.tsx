@@ -92,7 +92,7 @@ export default function App() {
             </h1>
 
             <p className="animate-rise-delay-2 mt-5 max-w-md text-base text-ow-mist/75 sm:text-lg">
-              닉네임·포지션·티어를 넣고, 역할별로 비슷한 실력의 팀으로 나눠 토너먼트를 돌리세요.
+              닉네임·포지션·티어를 넣고, 역할별로 비슷한 실력의 팀으로 나눠 대규모 내전·토너먼트까지.
             </p>
 
             <div className="animate-rise-delay-3 mt-8 flex flex-wrap gap-3">
@@ -115,7 +115,7 @@ export default function App() {
                 로비
               </h2>
               <p className="mt-1 text-sm text-ow-mist/65">
-                팀원은 제한 없이 추가할 수 있습니다. 디비전은 5가 낮고 1이 높습니다.
+                팀원·팀 수 모두 제한 없이 추가할 수 있습니다. 디비전은 5가 낮고 1이 높습니다.
               </p>
             </div>
 

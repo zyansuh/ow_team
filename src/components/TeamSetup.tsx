@@ -1,4 +1,4 @@
-import { Shuffle, Trophy } from 'lucide-react'
+import { Minus, Plus, Shuffle, Trophy } from 'lucide-react'
 
 interface TeamSetupProps {
   teamCount: number
@@ -15,32 +15,75 @@ export function TeamSetup({
   onBalance,
   canBalance,
 }: TeamSetupProps) {
+  function setCount(n: number) {
+    onTeamCountChange(Math.max(1, Math.floor(n) || 1))
+  }
+
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-2">
         <p className="font-display text-xs uppercase tracking-widest text-ow-mist/70">
-          팀 수
+          팀 수 (무제한)
         </p>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => onTeamCountChange(n)}
-              className={`font-display min-w-14 px-3 py-2 text-lg font-bold transition clip-btn ${
-                teamCount === n
-                  ? 'bg-ow-orange text-ow-slate'
-                  : 'border border-white/15 bg-ow-slate/50 text-ow-mist hover:border-ow-orange/50'
-              }`}
-            >
-              {n}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="btn-ghost !px-3"
+            aria-label="팀 수 1 감소"
+            onClick={() => setCount(teamCount - 1)}
+            disabled={teamCount <= 1}
+          >
+            <Minus size={16} />
+          </button>
+
+          <input
+            type="number"
+            min={1}
+            className="input-field clip-angle font-display w-24 text-center text-xl font-bold"
+            value={teamCount}
+            onChange={(e) => setCount(Number(e.target.value))}
+          />
+
+          <button
+            type="button"
+            className="btn-ghost !px-3"
+            aria-label="팀 수 1 증가"
+            onClick={() => setCount(teamCount + 1)}
+          >
+            <Plus size={16} />
+          </button>
+
+          <div className="ml-1 flex flex-wrap gap-1.5">
+            {[+5, +10, +20].map((step) => (
+              <button
+                key={step}
+                type="button"
+                className="btn-ghost !px-2.5 !py-1.5 !text-xs"
+                onClick={() => setCount(teamCount + step)}
+              >
+                {step > 0 ? `+${step}` : step}
+              </button>
+            ))}
+            {teamCount > 2 && (
+              <button
+                type="button"
+                className="btn-ghost !px-2.5 !py-1.5 !text-xs"
+                onClick={() => setCount(2)}
+              >
+                2로
+              </button>
+            )}
+          </div>
         </div>
         <p className="text-xs text-ow-mist/50">
           {teamCount >= 2
-            ? `${teamCount}팀 토너먼트 브래킷이 함께 생성됩니다.`
+            ? `${teamCount}팀 토너먼트 브래킷이 함께 생성됩니다. 대규모 내전도 OK.`
             : '1팀은 연습/내부 분배용입니다.'}
+          {playerCount > 0 && teamCount > 0 && (
+            <span className="ml-1 text-ow-mist/40">
+              · 팀당 약 {(playerCount / teamCount).toFixed(1)}명
+            </span>
+          )}
         </p>
       </div>
 

@@ -1,4 +1,5 @@
 import { Crown } from 'lucide-react'
+import { findChampionMatch } from '../lib/tournament'
 import type { Match, Team } from '../types'
 
 interface TournamentProps {
@@ -12,11 +13,21 @@ function teamName(teams: Team[], id: number | null): string {
   return teams.find((t) => t.id === id)?.name ?? '?'
 }
 
+function roundTitle(round: number, maxRound: number, matchCount: number): string {
+  const fromEnd = maxRound - round
+  if (fromEnd === 0) return '결승'
+  if (fromEnd === 1) return '준결승'
+  if (fromEnd === 2) return '8강'
+  const bracketSize = 2 ** (fromEnd + 1)
+  return `${bracketSize}강 · ${matchCount}경기`
+}
+
 export function Tournament({ teams, matches, onPickWinner }: TournamentProps) {
   if (matches.length === 0) return null
 
   const rounds = [...new Set(matches.map((m) => m.round))].sort((a, b) => a - b)
-  const champion = matches.find((m) => m.id === 'final' && m.winner !== null)
+  const maxRound = Math.max(...rounds)
+  const champion = findChampionMatch(matches)
 
   return (
     <section className="space-y-5 animate-rise-delay-3">
@@ -25,7 +36,7 @@ export function Tournament({ teams, matches, onPickWinner }: TournamentProps) {
           토너먼트
         </h2>
         <p className="mt-1 text-sm text-ow-mist/65">
-          승자를 클릭하면 다음 라운드로 올라갑니다.
+          {teams.length}팀 싱글 엘리미네이션 · 승자를 클릭하면 다음 라운드로 올라갑니다.
         </p>
       </header>
 
@@ -43,30 +54,36 @@ export function Tournament({ teams, matches, onPickWinner }: TournamentProps) {
         </div>
       )}
 
-      <div
-        className={`grid gap-6 ${rounds.length > 1 ? 'lg:grid-cols-2' : 'max-w-lg'}`}
-      >
-        {rounds.map((round) => {
-          const roundMatches = matches.filter((m) => m.round === round)
-          const roundLabel =
-            round === Math.max(...rounds) ? '결승 라운드' : `라운드 ${round}`
+      <div className="-mx-1 overflow-x-auto pb-2">
+        <div
+          className="flex gap-5 px-1"
+          style={{ minWidth: rounds.length > 2 ? `${rounds.length * 280}px` : undefined }}
+        >
+          {rounds.map((round) => {
+            const roundMatches = matches.filter((m) => m.round === round)
+            // 부전승으로 이미 끝난 첫 라운드 경기는 접어두지 않고 표시하되,
+            // 양쪽 다 없는 빈 매치는 숨김
+            const visible = roundMatches.filter(
+              (m) => m.teamA !== null || m.teamB !== null || m.round > 1,
+            )
 
-          return (
-            <div key={round} className="space-y-3">
-              <p className="font-display text-xs uppercase tracking-widest text-ow-mist/55">
-                {roundLabel}
-              </p>
-              {roundMatches.map((match) => (
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  teams={teams}
-                  onPickWinner={onPickWinner}
-                />
-              ))}
-            </div>
-          )
-        })}
+            return (
+              <div key={round} className="w-[270px] shrink-0 space-y-3">
+                <p className="font-display text-xs uppercase tracking-widest text-ow-mist/55">
+                  {roundTitle(round, maxRound, visible.length)}
+                </p>
+                {visible.map((match) => (
+                  <MatchCard
+                    key={match.id}
+                    match={match}
+                    teams={teams}
+                    onPickWinner={onPickWinner}
+                  />
+                ))}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </section>
   )
@@ -82,6 +99,9 @@ function MatchCard({
   onPickWinner: (matchId: string, teamId: number) => void
 }) {
   const ready = match.teamA !== null && match.teamB !== null
+  const isBye =
+    (match.teamA !== null && match.teamB === null) ||
+    (match.teamB !== null && match.teamA === null)
 
   return (
     <article className="section-panel overflow-hidden clip-angle">
@@ -89,6 +109,11 @@ function MatchCard({
         <span className="font-display text-sm font-semibold uppercase tracking-wider text-ow-orange">
           {match.label}
         </span>
+        {isBye && match.winner !== null && (
+          <span className="ml-2 text-[10px] uppercase tracking-widest text-ow-mist/40">
+            부전승
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-stretch">
@@ -111,7 +136,7 @@ function MatchCard({
         />
       </div>
 
-      {!ready && (
+      {!ready && !isBye && (
         <p className="border-t border-white/8 px-4 py-2 text-center text-xs text-ow-mist/40">
           이전 경기 결과를 기다려 주세요
         </p>
@@ -140,7 +165,7 @@ function Slot({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`px-4 py-5 text-center transition ${
+      className={`px-3 py-4 text-center transition ${
         isWinner
           ? 'bg-ow-orange/20 text-ow-orange'
           : disabled
@@ -148,7 +173,7 @@ function Slot({
             : 'text-ow-cream hover:bg-white/5'
       }`}
     >
-      <span className="font-display text-lg font-bold uppercase tracking-wide">{name}</span>
+      <span className="font-display text-base font-bold uppercase tracking-wide">{name}</span>
       {isWinner && (
         <span className="mt-1 block text-[10px] uppercase tracking-widest text-ow-orange">
           Winner

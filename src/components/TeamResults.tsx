@@ -34,15 +34,7 @@ export function TeamResults({ teams }: TeamResultsProps) {
         </p>
       </header>
 
-      <div
-        className={`grid gap-4 ${
-          teams.length === 1
-            ? 'max-w-md'
-            : teams.length === 2
-              ? 'md:grid-cols-2'
-              : 'md:grid-cols-2 xl:grid-cols-4'
-        }`}
-      >
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {teams.map((team, ti) => {
           const accent = TEAM_ACCENTS[ti % TEAM_ACCENTS.length]
           const avg = averageMmr(team)
