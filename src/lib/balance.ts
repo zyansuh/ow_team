@@ -93,9 +93,11 @@ export function balanceTeams(
   )
   placeOverflow(stillLeft, teams, assigned)
 
-  refineSlottedBalance(teams)
-  recalculateTotals(teams)
+  // 정원 먼저 맞춘 뒤 MMR 미세 조정 → 다시 한 번 탱 캡 확인
   enforceTankCap(teams)
+  refineSlottedBalance(teams)
+  enforceTankCap(teams)
+  recalculateTotals(teams)
 
   return teams
 }
@@ -139,6 +141,16 @@ function soleExplicitRole(player: Player): SlottedRole | null {
   return roles.length === 1 ? roles[0] : null
 }
 
+/** 딜/힐로 배정 가능한지 */
+function canPlayNonTank(player: Player): boolean {
+  return NON_TANK_ROLES.some((role) => canAssignRole(player, role))
+}
+
+/** 해당 역할만 명시한 전담 */
+function isSoleForRole(player: Player, role: SlottedRole): boolean {
+  return soleExplicitRole(player) === role
+}
+
 /** 탱 정원 초과 시 대체 — 명시한 딜/힐만, 없으면 null */
 function pickNonTankRole(player: Player, team: Team): SlottedRole | null {
   return pickAssignableRole(player, team, NON_TANK_ROLES)
@@ -173,9 +185,13 @@ function fillRoleSlots(
   teams: Team[],
   assigned: Set<string>,
 ): void {
-  const sorted = [...pool].sort(
-    (a, b) => playerRoleMmr(b, role) - playerRoleMmr(a, role),
-  )
+  // 전담(sole)을 먼저 채워 멀티포지션이 다른 슬롯에 남도록 함
+  const sorted = [...pool].sort((a, b) => {
+    const aSole = isSoleForRole(a, role) ? 1 : 0
+    const bSole = isSoleForRole(b, role) ? 1 : 0
+    if (aSole !== bSole) return bSole - aSole
+    return playerRoleMmr(b, role) - playerRoleMmr(a, role)
+  })
 
   for (const player of sorted) {
     if (assigned.has(player.id)) continue
@@ -290,10 +306,14 @@ function placeOverflow(
     if (withEmpty.length > 0) {
       withEmpty.sort((a, b) => a.team.totalMmr - b.team.totalMmr)
       const target = withEmpty[0]
-      const role = [...target.emptyRoles].sort(
-        (a, b) => playerRoleMmr(player, b) - playerRoleMmr(player, a),
-      )[0]
-      addMember(target.team, player, role)
+      // 탱 정원 가득이면 멀티포지션은 딜/힐 빈칸 우선
+      const roles = [...target.emptyRoles].sort((a, b) => {
+        const tankFull = !needsSlot(target.team, 'tank')
+        if (tankFull && a === 'tank' && b !== 'tank') return 1
+        if (tankFull && b === 'tank' && a !== 'tank') return -1
+        return playerRoleMmr(player, b) - playerRoleMmr(player, a)
+      })
+      addMember(target.team, player, roles[0])
       assigned.add(player.id)
       continue
     }
@@ -364,37 +384,57 @@ function refineSlottedBalance(teams: Team[]): void {
   }
 }
 
-/** 탱커 정원 초과 시: 딜/힐 가능한 인원만 재배정, 탱 전담은 다른 팀 탱 슬롯으로 이동 */
+/**
+ * 탱커 정원 초과 시:
+ * - 딜/힐도 가능한 멀티포지션을 먼저 다른 역할로 이동
+ * - 탱 전담은 다른 팀의 빈 탱 슬롯으로 이동
+ * - 그래도 불가하면 전담은 오버플로 탱으로 유지
+ */
 function enforceTankCap(teams: Team[]): void {
   for (const team of teams) {
-    let tanks = team.members.filter((m) => m.slottedRole === 'tank')
-    if (tanks.length <= activeComp.tank) continue
+    while (slotCount(team, 'tank') > activeComp.tank) {
+      const tanks = team.members.filter((m) => m.slottedRole === 'tank')
 
-    const ranked = [...tanks].sort(
-      (a, b) =>
-        playerRoleMmr(b.player, 'tank') - playerRoleMmr(a.player, 'tank'),
-    )
-    const extras = ranked.slice(activeComp.tank)
+      // 옮기기 쉬운 순: 딜/힐 가능 > 탱 전담 아님 > 탱 MMR 낮음
+      const movable = [...tanks].sort((a, b) => {
+        const aMove = canPlayNonTank(a.player) ? 1 : 0
+        const bMove = canPlayNonTank(b.player) ? 1 : 0
+        if (aMove !== bMove) return bMove - aMove
 
-    for (const extra of extras) {
-      const altTeam = teams.find(
-        (t) => t !== team && needsSlot(t, 'tank') && soleExplicitRole(extra.player) === 'tank',
-      )
-      if (altTeam) {
-        team.members = team.members.filter((m) => m !== extra)
-        altTeam.members.push(extra)
-        continue
+        const aSole = isSoleForRole(a.player, 'tank') ? 1 : 0
+        const bSole = isSoleForRole(b.player, 'tank') ? 1 : 0
+        if (aSole !== bSole) return aSole - bSole
+
+        return (
+          playerRoleMmr(a.player, 'tank') - playerRoleMmr(b.player, 'tank')
+        )
+      })
+
+      let fixed = false
+      for (const candidate of movable) {
+        const viewTeam: Team = {
+          ...team,
+          members: team.members.filter((m) => m !== candidate),
+        }
+        const altRole = pickNonTankRole(candidate.player, viewTeam)
+        if (altRole) {
+          candidate.slottedRole = altRole
+          fixed = true
+          break
+        }
+
+        const altTeam = teams.find(
+          (t) => t !== team && needsSlot(t, 'tank'),
+        )
+        if (altTeam && isSoleForRole(candidate.player, 'tank')) {
+          team.members = team.members.filter((m) => m !== candidate)
+          altTeam.members.push(candidate)
+          fixed = true
+          break
+        }
       }
 
-      const viewTeam: Team = {
-        ...team,
-        members: team.members.filter((m) => m !== extra),
-      }
-      const altRole = pickNonTankRole(extra.player, viewTeam)
-      if (altRole) {
-        extra.slottedRole = altRole
-      }
-      // 탱 전담만 선택한 경우: 다른 역할로 바꾸지 않고 오버플로 탱으로 유지
+      if (!fixed) break
     }
   }
 }
