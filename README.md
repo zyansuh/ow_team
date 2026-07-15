@@ -6,7 +6,7 @@
 > 대규모 서버(수백 명) 내전을 염두에 두고, **팀원·팀 수 모두 제한 없이** 늘릴 수 있습니다.  
 > **5:5** = 탱1·딜2·힐2 / **6:6** = 탱2·딜2·힐2  
 > **탱·힐·딜 티어를 모두 적은 뒤 무작위(플렉스)** 를 켜면 **빈 슬롯을 해당 포지션 티어로 자동 채웁니다.**  
-> **미배치/언랭**과 **반응형**을 지원합니다.
+> **미배치/언랭** · **반응형** · **라이트 모던 UI**를 지원합니다.
 
 **저장소:** [https://github.com/zyansuh/ow_team](https://github.com/zyansuh/ow_team)
 
@@ -29,6 +29,24 @@
 | 토너먼트 | N팀 싱글 엘리미네이션 · 부전승 · 가로 스냅 스크롤 |
 | 로컬 저장 | 팀원·모드 `localStorage` · 구버전 데이터 마이그레이션 |
 | 반응형 UI | 풀폭 버튼, 터치 영역, 모바일 브래킷 스와이프 |
+| **라이트 UI** | 소프트 블루 배경 · 글래스 패널 · pill CTA · 히어로 그라데이션 |
+
+---
+
+## 디자인
+
+다크·각진 게임 UI 대신, **밝은 로비** 톤으로 맞췄습니다.
+
+| 항목 | 내용 |
+|------|------|
+| 톤 | 소프트 블루·화이트 메쉬 배경, 오렌지 액센트 유지 |
+| 타이포 | **Syne**(디스플레이) + **IBM Plex Sans KR**(본문) |
+| 패널 | 반투명 글래스 · 가벼운 보더 · 둥근 모서리 |
+| CTA | pill 형태 primary/ghost 버튼 |
+| 히어로 | 브랜드 「티어맞춤 팀짜기」 강조 · 오브·그라데이션 모션 |
+| 접근성 | `prefers-reduced-motion` 시 애니메이션 축소 |
+
+스타일 토큰·유틸은 `src/index.css`의 `@theme` / CSS 변수에 모여 있습니다.
 
 ---
 
@@ -67,9 +85,9 @@
 
 | 기술 | 버전대 | 역할 |
 |------|--------|------|
-| [Tailwind CSS](https://tailwindcss.com/) | 4 | 유틸리티 · 반응형 |
+| [Tailwind CSS](https://tailwindcss.com/) | 4 | 유틸리티 · 테마 토큰 · 반응형 |
 | [lucide-react](https://lucide.dev/) | 1 | 아이콘 |
-| Google Fonts | — | Noto Sans KR, Rajdhani |
+| Google Fonts | — | Syne, IBM Plex Sans KR |
 
 ### 알고리즘 (직접 구현)
 
@@ -147,7 +165,7 @@ src/
   App.tsx                 # 모드·로비·편성·토너먼트
   types.ts                # GameMode, Player, TeamMember, Team, Match
   constants.ts            # 티어·포지션 · MMR · 플렉스 헬퍼
-  index.css               # 테마 · 반응형
+  index.css               # 라이트 테마 · 글래스 · 모션 · 반응형
   lib/
     balance.ts            # 모드별 슬롯 · 전담/플렉스 · 탱커 캡
     tournament.ts         # 브래킷
