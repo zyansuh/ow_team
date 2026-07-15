@@ -21,7 +21,7 @@ interface PlayerListProps {
 export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
   if (players.length === 0) {
     return (
-      <p className="py-6 text-center text-sm leading-relaxed text-ow-mist/55">
+      <p className="py-6 text-center text-sm leading-relaxed text-ow-mist">
         아직 등록된 팀원이 없습니다. 위에서 닉네임과 포지션별 티어를 입력해 주세요.
       </p>
     )
@@ -30,7 +30,7 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium tracking-wide text-ow-mist/70">
+        <p className="text-sm font-medium tracking-wide text-ow-mist">
           등록 {players.length}명
         </p>
         <button type="button" className="btn-ghost !min-h-9 !px-3 !text-xs" onClick={onClear}>
@@ -47,7 +47,7 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
           return (
             <li
               key={player.id}
-              className="animate-rise flex min-w-0 items-start gap-2.5 border border-white/8 bg-ow-slate/40 px-3 py-2.5 sm:gap-3"
+              className="animate-rise flex min-w-0 items-start gap-2.5 rounded-[12px] border border-ow-cream/8 bg-white/80 px-3 py-2.5 sm:gap-3"
               style={{ animationDelay: `${Math.min(i, 12) * 0.04}s` }}
             >
               <span
@@ -68,7 +68,7 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   <p className="truncate font-medium text-ow-cream">{player.nickname}</p>
-                  <span className="hidden text-[11px] text-ow-mist/40 sm:inline">
+                  <span className="hidden text-[11px] text-ow-mist/80 sm:inline">
                     평균 MMR {playerOverallMmr(player).toFixed(1)}
                   </span>
                 </div>
@@ -131,7 +131,7 @@ export function PlayerList({ players, onRemove, onClear }: PlayerListProps) {
               <button
                 type="button"
                 aria-label={`${player.nickname} 삭제`}
-                className="flex h-10 w-10 shrink-0 items-center justify-center text-ow-mist/45 transition hover:text-red-400"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ow-mist/85 transition hover:bg-red-50 hover:text-red-500"
                 onClick={() => onRemove(player.id)}
               >
                 <Trash2 size={16} />

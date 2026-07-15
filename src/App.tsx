@@ -93,35 +93,27 @@ export default function App() {
   return (
     <div className="bg-arena min-h-svh">
       <div className="bg-hex min-h-svh">
-        <header className="relative overflow-hidden border-b border-white/10">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-40"
-            style={{
-              background:
-                'linear-gradient(105deg, transparent 40%, rgba(249,158,26,0.12) 50%, transparent 60%)',
-            }}
-          />
-          <div className="relative mx-auto flex min-h-[min(88svh,640px)] max-w-5xl flex-col justify-center px-4 py-12 sm:min-h-[68svh] sm:px-8 sm:py-16 md:px-10">
-            <div className="animate-rise flex items-center gap-2 text-ow-orange">
+        <header className="hero-shell border-b border-ow-cream/8">
+          <div className="hero-orb hero-orb-a" aria-hidden />
+          <div className="hero-orb hero-orb-b" aria-hidden />
+          <div className="relative mx-auto flex min-h-[min(88svh,620px)] max-w-5xl flex-col justify-center px-4 py-14 sm:min-h-[64svh] sm:px-8 sm:py-20 md:px-10">
+            <div className="animate-rise hero-brand-mark">
               <Crosshair size={16} className="shrink-0 sm:size-[18px]" />
-              <span className="text-xs font-semibold tracking-[0.08em] text-ow-orange sm:text-sm sm:tracking-[0.12em]">
-                오버워치 커스텀 · 대규모 내전
-              </span>
+              <span>오버워치 커스텀 · 내전</span>
             </div>
 
-            <h1 className="animate-rise-delay-1 mt-4 font-bold leading-[1.08] tracking-tight text-ow-cream sm:mt-5 sm:leading-[1.05]">
-              <span className="block text-[clamp(2.25rem,10vw,4.5rem)]">티어맞춤</span>
-              <span className="mt-0.5 block text-[clamp(2.75rem,12vw,5.5rem)] text-ow-orange sm:mt-1">
+            <h1 className="animate-rise-delay-1 hero-title mt-5 text-ow-cream sm:mt-6">
+              <span className="block text-[clamp(2.6rem,11vw,5.25rem)]">티어맞춤</span>
+              <span className="mt-1 block bg-gradient-to-r from-ow-orange via-[#f3841f] to-[#d96510] bg-clip-text text-[clamp(3.1rem,13vw,6rem)] text-transparent">
                 팀짜기
               </span>
             </h1>
 
-            <p className="animate-rise-delay-2 mt-5 max-w-lg text-[0.95rem] leading-relaxed text-ow-mist/80 sm:mt-6 sm:text-lg">
-              5:5 · 6:6 모드로 역할별 티어를 맞춰 팀을 짜고,
-              대규모 내전·토너먼트까지 한곳에서 돌리세요.
+            <p className="animate-rise-delay-2 mt-6 max-w-md text-[1rem] leading-relaxed text-ow-mist sm:mt-7 sm:text-lg">
+              역할별 티어로 팀을 맞추고, 토너먼트까지 한곳에서.
             </p>
 
-            <div className="animate-rise-delay-3 mt-7 flex w-full flex-col gap-3 sm:mt-8 sm:w-auto sm:flex-row sm:flex-wrap">
+            <div className="animate-rise-delay-3 mt-8 flex w-full flex-col gap-3 sm:mt-9 sm:w-auto sm:flex-row">
               <a href="#mode" className="btn-primary w-full sm:w-auto">
                 <Users size={18} />
                 모드 선택
@@ -143,10 +135,8 @@ export default function App() {
             className="section-panel animate-rise space-y-5 p-4 clip-angle sm:space-y-6 sm:p-7 scroll-mt-4"
           >
             <div>
-              <h2 className="text-xl font-bold tracking-tight sm:text-3xl sm:tracking-wide sm:font-display sm:uppercase">
-                로비
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
+              <h2 className="section-title text-2xl text-ow-cream sm:text-3xl">로비</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-ow-mist">
                 {modeDisplayName(gameMode)} · {compositionSummary(gameMode)}. 포지션별
                 티어를 적은 뒤 무작위를 켜면 빈 슬롯을 자동으로 채웁니다. 미배치/언랭도
                 가능합니다.
@@ -154,7 +144,7 @@ export default function App() {
             </div>
 
             <PlayerForm onAdd={addPlayer} />
-            <div className="border-t border-white/8 pt-5">
+            <div className="border-t border-ow-cream/8 pt-5">
               <PlayerList
                 players={players}
                 onRemove={removePlayer}
@@ -176,7 +166,7 @@ export default function App() {
               canBalance={players.length >= teamCount}
             />
             {players.length > 0 && players.length < teamCount && (
-              <p className="mt-3 text-sm leading-relaxed text-amber-400/90">
+              <p className="mt-3 text-sm leading-relaxed text-amber-700">
                 팀 수보다 인원이 적습니다. 최소 {teamCount}명 이상 등록해 주세요.
               </p>
             )}
@@ -196,11 +186,11 @@ export default function App() {
           </div>
         </main>
 
-        <footer className="border-t border-white/8 px-4 py-6 text-center sm:py-8">
-          <p className="text-xs tracking-wide text-ow-mist/35">
+        <footer className="border-t border-ow-cream/8 px-4 py-8 text-center sm:py-10">
+          <p className="text-xs tracking-wide text-ow-mist">
             티어맞춤 팀짜기 · 오버워치 내전용 팀 편성
           </p>
-          <p className="mt-2 text-[11px] tracking-wide text-ow-mist/25">made by DANBI</p>
+          <p className="mt-2 text-[11px] tracking-wide text-ow-mist">made by DANBI</p>
         </footer>
       </div>
     </div>

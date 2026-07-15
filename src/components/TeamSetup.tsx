@@ -33,7 +33,7 @@ export function TeamSetup({
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0 flex-1 space-y-2">
-        <p className="text-xs font-medium tracking-wide text-ow-mist/70">
+        <p className="text-xs font-medium tracking-wide text-ow-mist">
           팀 수 (무제한)
         </p>
 
@@ -89,11 +89,11 @@ export function TeamSetup({
           )}
         </div>
 
-        <p className="text-xs leading-relaxed text-ow-mist/50">
+        <p className="text-xs leading-relaxed text-ow-mist/90">
           {modeDisplayName(gameMode)} · {compositionSummary(gameMode)}
           {teamCount >= 2 ? ` · ${teamCount}팀 토너먼트` : ' · 1팀 연습용'}
           {playerCount > 0 && teamCount > 0 && (
-            <span className="mt-0.5 block text-ow-mist/40 sm:mt-0 sm:ml-1 sm:inline">
+            <span className="mt-0.5 block text-ow-mist/80 sm:mt-0 sm:ml-1 sm:inline">
               · 팀당 약 {(playerCount / teamCount).toFixed(1)}명
               {playerCount >= needForFull
                 ? ` (${perTeam}인 완편 가능)`

@@ -42,7 +42,7 @@ function TierFields({
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <label className="block space-y-1.5">
-        <span className="text-xs text-ow-mist/60">티어</span>
+        <span className="text-xs text-ow-mist">티어</span>
         <select
           className="input-field clip-angle"
           value={tier.rank}
@@ -56,9 +56,9 @@ function TierFields({
         </select>
       </label>
       <label className="block space-y-1.5">
-        <span className="text-xs text-ow-mist/60">디비전</span>
+        <span className="text-xs text-ow-mist">디비전</span>
         {tier.rank === 'unranked' ? (
-          <div className="input-field clip-angle flex items-center text-ow-mist/45">
+          <div className="input-field clip-angle flex items-center text-ow-mist/85">
             해당 없음
           </div>
         ) : (
@@ -183,7 +183,7 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <label className="block space-y-1.5">
-        <span className="text-xs font-medium tracking-wide text-ow-mist/70">닉네임</span>
+        <span className="text-xs font-medium tracking-wide text-ow-mist">닉네임</span>
         <input
           className="input-field clip-angle"
           value={nickname}
@@ -196,7 +196,7 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
       </label>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium tracking-wide text-ow-mist/70">
+        <p className="text-xs font-medium tracking-wide text-ow-mist">
           포지션 · 티어 (5:5 / 6:6 모두 탱·힐·딜 구성)
         </p>
         <div className="flex flex-wrap gap-2">
@@ -210,9 +210,9 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
                 onClick={() => togglePosition(position)}
                 className="min-h-10 px-3 py-2 text-sm font-semibold transition clip-btn"
                 style={{
-                  background: on ? `${color}28` : 'rgba(15,23,36,0.55)',
-                  color: on ? color : 'rgba(197,208,222,0.55)',
-                  border: `1px solid ${on ? `${color}88` : 'rgba(197,208,222,0.18)'}`,
+                  background: on ? `${color}22` : 'rgba(255,255,255,0.85)',
+                  color: on ? color : 'rgba(90,106,126,0.85)',
+                  border: `1px solid ${on ? `${color}88` : 'rgba(20,24,33,0.12)'}`,
                 }}
               >
                 {POSITION_LABELS[position]}
@@ -220,8 +220,8 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
             )
           })}
         </div>
-        <p className="text-xs leading-relaxed text-ow-mist/45">
-          탱·힐·딜 티어를 모두 적은 뒤 <span className="text-ow-mist/70">무작위</span>를
+        <p className="text-xs leading-relaxed text-ow-mist/85">
+          탱·힐·딜 티어를 모두 적은 뒤 <span className="text-ow-mist">무작위</span>를
           켜면, 팀 짜기 때 빈 슬롯(탱1·딜2·힐2)을 해당 티어로 자동 채웁니다.
         </p>
       </div>
@@ -230,7 +230,7 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
         {specificEnabled.map((position) => (
           <div
             key={position}
-            className="border border-white/10 bg-ow-slate/35 p-3 clip-angle sm:p-4"
+            className="border border-ow-cream/10 bg-white/70 p-3 clip-angle sm:p-4"
             style={{ borderLeft: `3px solid ${POSITION_COLORS[position]}` }}
           >
             <p
@@ -248,7 +248,7 @@ export function PlayerForm({ onAdd }: PlayerFormProps) {
         ))}
       </div>
 
-      {error && <p className="text-sm text-amber-400/90">{error}</p>}
+      {error && <p className="text-sm text-amber-700">{error}</p>}
 
       <button type="submit" className="btn-primary animate-pulse-glow w-full sm:w-auto">
         <Plus size={18} strokeWidth={2.5} />

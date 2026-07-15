@@ -39,10 +39,10 @@ export function TeamResults({ teams, gameMode }: TeamResultsProps) {
   return (
     <section className="animate-rise-delay-2 space-y-4 sm:space-y-5">
       <header>
-        <h2 className="text-xl font-bold tracking-tight text-ow-cream sm:text-3xl sm:font-display sm:uppercase sm:tracking-wide">
+        <h2 className="section-title text-2xl text-ow-cream sm:text-3xl">
           팀 편성 결과
         </h2>
-        <p className="mt-1 text-sm leading-relaxed text-ow-mist/65">
+        <p className="mt-1 text-sm leading-relaxed text-ow-mist">
           <span className="text-ow-orange">{modeDisplayName(gameMode)} 모드</span>
           {' · '}
           팀당 <span className="text-ow-mist/85">{compositionSummary(gameMode)}</span> 기준.
@@ -67,28 +67,28 @@ export function TeamResults({ teams, gameMode }: TeamResultsProps) {
               className="section-panel overflow-hidden clip-angle"
               style={{ borderTop: `3px solid ${accent}` }}
             >
-              <div className="border-b border-white/8 px-3 py-3 sm:px-4">
+              <div className="border-b border-ow-cream/8 px-3 py-3 sm:px-4">
                 <div className="flex items-baseline justify-between gap-2">
                   <h3
-                    className="text-lg font-bold tracking-wide sm:text-xl sm:font-display sm:uppercase"
+                    className="text-lg font-bold tracking-wide sm:text-xl section-title"
                     style={{ color: accent }}
                   >
                     {team.name}
                   </h3>
-                  <span className="shrink-0 text-xs text-ow-mist/50">
+                  <span className="shrink-0 text-xs text-ow-mist/90">
                     {team.members.length}명
                     {full ? ' · 완편' : ''}
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-ow-mist/50">{compositionLabel(team)}</p>
+                <p className="mt-1 text-[11px] text-ow-mist/90">{compositionLabel(team)}</p>
                 <div className="mt-2 space-y-1">
-                  <div className="flex justify-between text-[11px] text-ow-mist/55">
+                  <div className="flex justify-between text-[11px] text-ow-mist">
                     <span>평균 MMR</span>
                     <span className="text-sm font-semibold text-ow-cream">{avg.toFixed(1)}</span>
                   </div>
-                  <div className="h-1.5 overflow-hidden bg-ow-slate/80">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-ow-cream/8">
                     <div
-                      className="h-full transition-all duration-700"
+                      className="h-full rounded-full transition-all duration-700"
                       style={{ width: barWidth, background: accent }}
                     />
                   </div>
@@ -106,7 +106,7 @@ export function TeamResults({ teams, gameMode }: TeamResultsProps) {
                         >
                           {POSITION_LABELS[role]} {count}/{need}
                           {count > 0 && (
-                            <span className="text-ow-mist/35"> · {roleAvg.toFixed(1)}</span>
+                            <span className="text-ow-mist/75"> · {roleAvg.toFixed(1)}</span>
                           )}
                         </span>
                       )
@@ -115,9 +115,9 @@ export function TeamResults({ teams, gameMode }: TeamResultsProps) {
                 </div>
               </div>
 
-              <ul className="divide-y divide-white/5">
+              <ul className="divide-y divide-ow-cream/6">
                 {sortedMembers.length === 0 && (
-                  <li className="px-4 py-6 text-center text-sm text-ow-mist/40">비어 있음</li>
+                  <li className="px-4 py-6 text-center text-sm text-ow-mist/80">비어 있음</li>
                 )}
                 {sortedMembers.map((member) => {
                   const { player, slottedRole } = member
@@ -187,7 +187,7 @@ export function TeamResults({ teams, gameMode }: TeamResultsProps) {
                             ))}
                         </div>
                       </div>
-                      <span className="hidden shrink-0 text-[10px] text-ow-mist/35 sm:block">
+                      <span className="hidden shrink-0 text-[10px] text-ow-mist/75 sm:block">
                         {playerRoleMmr(player, slottedRole)}
                       </span>
                     </li>
