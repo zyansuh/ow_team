@@ -82,31 +82,64 @@ export function createId(): string {
 }
 
 export function hasRole(player: Player, position: Position): boolean {
+  if (position === 'random') return isFlex(player)
+  if (player.roles.some((r) => r.position === position)) return true
+  // 무작위만 선택한 경우 → 탱/힐/딜 모두 가능
+  return isFlex(player) && specificRoles(player).length === 0
+}
+
+/** 드래프트용: 직접 고른 포지션만 */
+export function hasExplicitRole(player: Player, position: Position): boolean {
   return player.roles.some((r) => r.position === position)
+}
+
+export function isFlex(player: Player): boolean {
+  return player.roles.some((r) => r.position === 'random')
+}
+
+export function specificRoles(player: Player): RoleEntry[] {
+  return player.roles.filter((r) => r.position !== 'random')
 }
 
 export function getRoleEntry(player: Player, position: Position): RoleEntry | undefined {
   return player.roles.find((r) => r.position === position)
 }
 
-/** 해당 포지션 티어 MMR. 없으면 0 */
+/** 해당 포지션 티어 MMR. 무작위만이면 대표 티어, 플렉스+명시 포지션이면 명시 우선 */
 export function playerRoleMmr(player: Player, position: Position): number {
+  if (position === 'random') return playerOverallMmr(player)
+
   const entry = getRoleEntry(player, position)
-  return entry ? tierToMmr(entry.tier) : 0
+  if (entry) return tierToMmr(entry.tier)
+
+  const specs = specificRoles(player)
+  if (isFlex(player) && specs.length === 0) {
+    const flex = getRoleEntry(player, 'random')
+    return flex ? tierToMmr(flex.tier) : 0
+  }
+
+  return 0
 }
 
-/** 팀원 전체 강도: 보유 포지션 MMR 평균 */
+/** 팀원 전체 강도: 명시 포지션 MMR 평균 (없으면 무작위 대표 티어) */
 export function playerOverallMmr(player: Player): number {
-  if (player.roles.length === 0) return 0
-  const sum = player.roles.reduce((acc, r) => acc + tierToMmr(r.tier), 0)
-  return sum / player.roles.length
+  const specs = specificRoles(player)
+  if (specs.length > 0) {
+    return specs.reduce((acc, r) => acc + tierToMmr(r.tier), 0) / specs.length
+  }
+  const flex = getRoleEntry(player, 'random')
+  return flex ? tierToMmr(flex.tier) : 0
 }
 
 export function primaryPosition(player: Player): Position {
-  const ordered = [...player.roles].sort(
-    (a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position),
-  )
-  return ordered[0]?.position ?? 'random'
+  const specs = specificRoles(player)
+  if (specs.length > 0) {
+    const ordered = [...specs].sort(
+      (a, b) => POSITION_ORDER.indexOf(a.position) - POSITION_ORDER.indexOf(b.position),
+    )
+    return ordered[0].position
+  }
+  return 'random'
 }
 
 /** localStorage 구버전(position+tier) → roles 마이그레이션 */

@@ -1,5 +1,7 @@
 export type Position = 'tank' | 'healer' | 'dealer' | 'random'
 
+export type SlottedRole = 'tank' | 'healer' | 'dealer'
+
 export type RankName =
   | 'unranked'
   | 'bronze'
@@ -31,10 +33,16 @@ export interface Player {
   roles: RoleEntry[]
 }
 
+/** 팀에 배치된 인원 + 맡은 역할 (OW: 탱1 딜2 힐2) */
+export interface TeamMember {
+  player: Player
+  slottedRole: SlottedRole
+}
+
 export interface Team {
   id: number
   name: string
-  players: Player[]
+  members: TeamMember[]
   totalMmr: number
 }
 
